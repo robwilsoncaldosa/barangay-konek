@@ -1,11 +1,21 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+// import { ethers } from "ethers";
+import { getContract } from "@/lib/blockchain";
+
+declare global {
+  interface Window {
+    ethereum?: import("ethers").Eip1193Provider;
+  }
+}
 
 const RegisterPage = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const defaultUserType = searchParams.get("userType") || "resident"; // default
+  const defaultUserType = searchParams.get("userType") || "resident";
+
   const [userType, setUserType] = useState(defaultUserType);
   const [formData, setFormData] = useState({
     first_name: "",
@@ -25,12 +35,12 @@ const RegisterPage = () => {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    setFormData(prev => ({ ...prev, user_type: userType }));
+    setFormData((prev) => ({ ...prev, user_type: userType }));
   }, [userType]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,6 +48,7 @@ const RegisterPage = () => {
     setMessage("Creating account...");
 
     try {
+      // ✅ Step 1: Save user to Supabase (or your API)
       const res = await fetch("/api/mUsers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,16 +56,39 @@ const RegisterPage = () => {
       });
 
       const data = await res.json();
+
       if (res.ok && data.success) {
+        try {
+          if (!window.ethereum) throw new Error("MetaMask not detected");
+
+          const contract = await getContract();
+
+          console.log("⏳ Registering user on blockchain...");
+
+          const fullName = `${formData.first_name} ${formData.last_name}`;
+          const tx = await contract.register(fullName, formData.user_type);
+
+          setMessage("⏳ Recording to blockchain...");
+          await tx.wait();
+
+          console.log("✅ User recorded on blockchain:", tx.hash);
+          setMessage("✅ User successfully registered on blockchain!");
+
+        } catch (err) {
+          console.error("Blockchain error:", err);
+          setMessage("⚠️ Account created but blockchain registration failed.");
+        }
+
+
         setMessage("✅ Account created successfully!");
-        // redirect to success page
+
         router.push(`/register/success?userType=${userType}`);
       } else {
         setMessage(`❌ ${data.message}`);
       }
     } catch (err) {
-      setMessage("❌ Unexpected error occurred");
       console.error(err);
+      setMessage("❌ Unexpected error occurred");
     }
   };
 
@@ -66,119 +100,25 @@ const RegisterPage = () => {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="text"
-            name="first_name"
-            value={formData.first_name}
-            onChange={handleChange}
-            placeholder="First Name"
-            required
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="text"
-            name="middle_name"
-            value={formData.middle_name}
-            onChange={handleChange}
-            placeholder="Middle Name"
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="text"
-            name="last_name"
-            value={formData.last_name}
-            onChange={handleChange}
-            placeholder="Last Name"
-            required
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Email"
-            required
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Password"
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="date"
-            name="birthdate"
-            value={formData.birthdate}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="text"
-            name="permanent_address"
-            value={formData.permanent_address}
-            onChange={handleChange}
-            placeholder="Permanent Address"
-            required
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="text"
-            name="permanent_barangay"
-            value={formData.permanent_barangay}
-            onChange={handleChange}
-            placeholder="Permanent Barangay"
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="text"
-            name="current_address"
-            value={formData.current_address}
-            onChange={handleChange}
-            placeholder="Current Address"
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="text"
-            name="current_barangay"
-            value={formData.current_barangay}
-            onChange={handleChange}
-            placeholder="Current Barangay"
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="text"
-            name="contact_no"
-            value={formData.contact_no}
-            onChange={handleChange}
-            placeholder="Contact No."
-            required
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          <input
-            type="text"
-            name="mBarangayId"
-            value={formData.mBarangayId}
-            onChange={handleChange}
-            placeholder="Barangay ID (optional)"
-            className="w-full px-3 py-2 border rounded text-black"
-          />
+          <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} placeholder="First Name" required className="w-full px-3 py-2 border rounded text-black" />
+          <input type="text" name="middle_name" value={formData.middle_name} onChange={handleChange} placeholder="Middle Name" className="w-full px-3 py-2 border rounded text-black" />
+          <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} placeholder="Last Name" required className="w-full px-3 py-2 border rounded text-black" />
+          <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" required className="w-full px-3 py-2 border rounded text-black" />
+          <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" className="w-full px-3 py-2 border rounded text-black" />
+          <input type="date" name="birthdate" value={formData.birthdate} onChange={handleChange} required className="w-full px-3 py-2 border rounded text-black" />
+          <input type="text" name="permanent_address" value={formData.permanent_address} onChange={handleChange} placeholder="Permanent Address" required className="w-full px-3 py-2 border rounded text-black" />
+          <input type="text" name="permanent_barangay" value={formData.permanent_barangay} onChange={handleChange} placeholder="Permanent Barangay" className="w-full px-3 py-2 border rounded text-black" />
+          <input type="text" name="current_address" value={formData.current_address} onChange={handleChange} placeholder="Current Address" className="w-full px-3 py-2 border rounded text-black" />
+          <input type="text" name="current_barangay" value={formData.current_barangay} onChange={handleChange} placeholder="Current Barangay" className="w-full px-3 py-2 border rounded text-black" />
+          <input type="text" name="contact_no" value={formData.contact_no} onChange={handleChange} placeholder="Contact No." required className="w-full px-3 py-2 border rounded text-black" />
+          <input type="text" name="mBarangayId" value={formData.mBarangayId} onChange={handleChange} placeholder="Barangay ID (optional)" className="w-full px-3 py-2 border rounded text-black" />
 
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mt-2"
-          >
+          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mt-2">
             Create Account
           </button>
         </form>
 
-        {message && (
-          <p className="mt-4 text-center text-gray-600">{message}</p>
-        )}
+        {message && <p className="mt-4 text-center text-gray-600">{message}</p>}
       </div>
     </div>
   );

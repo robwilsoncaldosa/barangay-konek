@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import UserTable from "../../app/components/UserTable";
 import Navbar from "../components/Navbar";
 import CertificatePage from "../official/certificate/page";
+import Request from "../../app/components/Request";
+
 
 export default function OfficialPage() {
   const router = useRouter();
@@ -27,5 +29,7 @@ export default function OfficialPage() {
 
   return (<><h1>Welcome Official!</h1>      <Navbar />
     <UserTable userType="resident" />
-    <CertificatePage /></>);
+    <CertificatePage />
+    <Request />
+    </>);
 }
