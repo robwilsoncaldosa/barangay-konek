@@ -154,7 +154,7 @@ const RequestPage = () => {
 
                     setMessage("🪙 Registering request on blockchain...");
                     await registerRequestOnChain(
-                        selectedRequest.m_certificate_id,
+                        selectedRequest.id,
                         walletAddress,
                         selectedRequest.purpose,
                         file.name

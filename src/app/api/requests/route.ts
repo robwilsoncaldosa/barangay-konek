@@ -182,9 +182,39 @@ export async function PUT(req: Request) {
       from: process.env.NEXT_PUBLIC_SMTP_USER ?? undefined,
       to: email,
       subject: "Your Requested Document",
-      text: "Please find the attached document.",
-      attachments: [{ filename: file.name, path: filePath }],
+      html: `
+  <div style="font-family: Arial, sans-serif; background-color: #f3f6f9; padding: 24px;">
+    <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+      <div style="background-color: #2563eb; color: #ffffff; padding: 16px 24px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+        <h2 style="margin: 0; font-size: 20px;">Barangay Konek</h2>
+      </div>
+      <div style="padding: 24px; background: #ffffff;">
+        <h3 style="margin: 0 0 12px; color: #1f2937;">Your Requested Document is Ready</h3>
+        <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+          Dear Resident,
+        </p>
+        <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+          Thank you for using our service. Please find the attached document you requested.
+        </p>
+        <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+          If you have any concerns or need additional assistance, feel free to reply to this email.
+        </p>
+        <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
+          Best regards,<br/>
+          <strong>Barangay Konek Team</strong>
+        </p>
+      </div>
+      </div>
+      <div style="text-align: center; padding: 16px; font-size: 12px; color: #777;">
+          &copy; ${new Date().getFullYear()} Barangay Konek. All rights reserved.
+        </div>
+  </div>
+  `,
+      attachments: [
+        { filename: file.name, path: filePath }
+      ],
     });
+
 
     // Update Supabase
     const { data, error } = await supabase
