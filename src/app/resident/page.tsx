@@ -11,7 +11,7 @@ type Certificate = {
 
 type Request = {
   id: number;
-  m_certificate_id: number;
+  mCertificateId: number;
   document_type: string;
   purpose: string;
   request_date: string;
@@ -86,7 +86,7 @@ export default function ResidentPage() {
 
     const requestData = {
       resident_id: user.id,
-      m_certificate_id: selectedCertificate,
+      mCertificateId: selectedCertificate,
       document_type: documentType,
       purpose,
       request_date: new Date().toISOString().split("T")[0],
@@ -122,7 +122,14 @@ export default function ResidentPage() {
       <Navbar />
       <div className="max-w-md mx-auto mt-8 p-4 border rounded shadow">
         <h1 className="text-2xl font-bold mb-4">Request a Certificate</h1>
-        {message && <p className="mb-4 text-red-500">{message}</p>}
+        {message && (
+          <p
+            className={`mb-4 ${message.toLowerCase().includes('error') ? 'text-red-500' : 'text-blue-500'
+              }`}
+          >
+            {message}
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <label>
             Certificate:
@@ -200,7 +207,7 @@ export default function ResidentPage() {
             <tbody>
               {requests.map((r) => (
                 <tr key={r.id}>
-                  <td className="border p-2">{r.m_certificate_id}</td>
+                  <td className="border p-2">{r.mCertificateId}</td>
                   <td className="border p-2">{r.document_type}</td>
                   <td className="border p-2">{r.purpose}</td>
                   <td className="border p-2">{r.request_date}</td>

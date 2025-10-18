@@ -53,29 +53,29 @@ const UserTable = ({ userType }: Props) => {
         } finally { setLoading(false); }
     };
 
-const handleAddUser = async () => {
-    const payload = {
-        ...newUser,
-        mBarangayId: newUser.mBarangayId ? Number(newUser.mBarangayId) : null
-    };
+    const handleAddUser = async () => {
+        const payload = {
+            ...newUser,
+            mBarangayId: newUser.mBarangayId ? Number(newUser.mBarangayId) : null
+        };
 
-    const res = await fetch("/api/mUsers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-    });
-    const result = await res.json();
-    if (result.success) {
-        fetchUsers();
-        setShowForm(false);
-        setNewUser({
-            first_name: "", middle_name: "", last_name: "", email: "",
-            password: "", birthdate: "", permanent_address: "",
-            permanent_barangay: "", current_address: "", current_barangay: "",
-            contact_no: "", mBarangayId: "", user_type: userType
+        const res = await fetch("/api/mUsers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
         });
-    } else alert(result.message);
-};
+        const result = await res.json();
+        if (result.success) {
+            fetchUsers();
+            setShowForm(false);
+            setNewUser({
+                first_name: "", middle_name: "", last_name: "", email: "",
+                password: "", birthdate: "", permanent_address: "",
+                permanent_barangay: "", current_address: "", current_barangay: "",
+                contact_no: "", mBarangayId: "", user_type: userType
+            });
+        } else alert(result.message);
+    };
 
 
     const handleDelete = async (id: number) => {
@@ -150,32 +150,47 @@ const handleAddUser = async () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {users.map(user => (
-                        <tr key={user.id}>
-                            <td className="border px-2 py-1">{user.id}</td>
-                            <td className="border px-2 py-1">{user.first_name}</td>
-                            <td className="border px-2 py-1">{user.middle_name}</td>
-                            <td className="border px-2 py-1">{user.last_name}</td>
-                            <td className="border px-2 py-1">{user.email}</td>
-                            <td className="border px-2 py-1">{user.birthdate}</td>
-                            <td className="border px-2 py-1">{user.contact_no}</td>
-                            <td className="border px-2 py-1">{user.sign_up_status}</td>
-                            <td className="border px-2 py-1 space-x-2">
-                                {userType === "official" && (
-                                    <>
-                                        {user.sign_up_status === "pending" && (
-                                            <>
-                                                <button className="px-2 py-1 bg-green-500 text-white rounded" onClick={() => handleEdit(user.id, "approved")}>Approve</button>
-                                            </>
-                                        )}
-
-                                        <button className="px-2 py-1 bg-red-500 text-white rounded" onClick={() => handleDelete(user.id)}>Delete</button>
-                                    </>
-                                )}
+                    {users.length === 0 ? (
+                        <tr>
+                            <td
+                                colSpan={9}
+                                className="text-center py-3 text-gray-500 border"
+                            >
+                                No users found.
                             </td>
                         </tr>
-                    ))}
+                    ) : (
+                        users.map((user) => (
+                            <tr key={user.id}>
+                                <td className="border px-2 py-1">{user.id}</td>
+                                <td className="border px-2 py-1">{user.first_name}</td>
+                                <td className="border px-2 py-1">{user.middle_name}</td>
+                                <td className="border px-2 py-1">{user.last_name}</td>
+                                <td className="border px-2 py-1">{user.email}</td>
+                                <td className="border px-2 py-1">{user.birthdate}</td>
+                                <td className="border px-2 py-1">{user.contact_no}</td>
+                                <td className="border px-2 py-1">{user.sign_up_status}</td>
+                                <td className="border px-2 py-1 space-x-2">
+                                    {user.sign_up_status === "pending" && (
+                                        <button
+                                            className="px-2 py-1 bg-green-500 text-white rounded"
+                                            onClick={() => handleEdit(user.id, "approved")}
+                                        >
+                                            Approve
+                                        </button>
+                                    )}
+                                    <button
+                                        className="px-2 py-1 bg-red-500 text-white rounded"
+                                        onClick={() => handleDelete(user.id)}
+                                    >
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        ))
+                    )}
                 </tbody>
+
             </table>
         </div>
     );

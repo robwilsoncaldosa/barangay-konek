@@ -66,21 +66,59 @@ export async function GET(req: Request) {
 }
 
 // POST → create a new request
+// export async function POST(req: Request) {
+//   try {
+//     const body = await req.json();
+//     const { m_certificate_id, resident_id, purpose } = body;
+
+//     if (!m_certificate_id || !resident_id || !purpose) {
+//       return NextResponse.json(
+//         { success: false, message: "m_certificate_id, resident_id, and purpose are required" },
+//         { status: 400 }
+//       );
+//     }
+
+//     const insertData = {
+//       m_certificate_id,
+//       resident_id,
+//       purpose,
+//       document_type: body.document_type || "",
+//       request_date: body.request_date || new Date().toISOString().split("T")[0],
+//       priority: body.priority || "Normal",
+//       status: "pending",
+//       payment_status: "unpaid",
+//       del_flag: 0,
+//       created_at: new Date().toISOString(),
+//       updated_at: new Date().toISOString(),
+//     };
+
+//     const { data, error } = await supabase.from("mRequest").insert([insertData]).select().single();
+
+//     if (error) throw error;
+
+//     return NextResponse.json({ success: true, message: "Request submitted successfully", data });
+//   } catch (err) {
+//     const message = err instanceof Error ? err.message : "Unexpected error";
+//     return NextResponse.json({ success: false, message }, { status: 500 });
+//   }
+// }
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { m_certificate_id, resident_id, purpose } = body;
+    console.log("Received body:", body); // ✅ log incoming data
 
-    if (!m_certificate_id || !resident_id || !purpose) {
+    const { mCertificateId, resident_id, purpose } = body;
+
+    if (!mCertificateId || !resident_id || !purpose) {
       return NextResponse.json(
-        { success: false, message: "m_certificate_id, resident_id, and purpose are required" },
+        { success: false, message: "mCertificateId, resident_id, and purpose are required" },
         { status: 400 }
       );
     }
 
     const insertData = {
-      m_certificate_id,
-      resident_id,
+      mCertificateId: Number(mCertificateId),
+      resident_id: Number(resident_id),
       purpose,
       document_type: body.document_type || "",
       request_date: body.request_date || new Date().toISOString().split("T")[0],
@@ -92,12 +130,18 @@ export async function POST(req: Request) {
       updated_at: new Date().toISOString(),
     };
 
+    console.log("Inserting data:", insertData);
+
     const { data, error } = await supabase.from("mRequest").insert([insertData]).select().single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
+    }
 
     return NextResponse.json({ success: true, message: "Request submitted successfully", data });
   } catch (err) {
+    console.error("POST /api/requests failed:", err); // ✅ print the real error
     const message = err instanceof Error ? err.message : "Unexpected error";
     return NextResponse.json({ success: false, message }, { status: 500 });
   }

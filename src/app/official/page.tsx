@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UserTable from "../../app/components/UserTable";
 import Navbar from "../components/Navbar";
-import CertificatePage from "../official/certificate/page";
+import CertificatePage from "../components/Certificate";
 import Request from "../../app/components/Request";
 
 

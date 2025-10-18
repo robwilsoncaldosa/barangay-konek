@@ -26,6 +26,7 @@ const RequestPage = () => {
     const [file, setFile] = useState<File | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [message, setMessage] = useState("");
+    const [hasMetaMask, setHasMetaMask] = useState(false);
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -47,6 +48,9 @@ const RequestPage = () => {
 
     useEffect(() => {
         fetchRequests();
+        if (typeof window !== "undefined" && window.ethereum) {
+            setHasMetaMask(true);
+        }
     }, []);
 
     const openModal = (req: RequestData) => {
@@ -66,72 +70,54 @@ const RequestPage = () => {
         setFile(selected || null);
     };
 
-    //   const handleSubmit = async () => {
+    // const handleSubmit = async () => {
     //     if (!file || !selectedRequest) return;
+
+    //     const email = selectedRequest.email;
+    //     if (!email) {
+    //         setMessage("❌ Resident email not found!");
+    //         return;
+    //     }
 
     //     const formData = new FormData();
     //     formData.append("file", file);
     //     formData.append("request_id", selectedRequest.id.toString());
-    //     formData.append("email", selectedRequest.email);
+    //     formData.append("email", email);
 
     //     setMessage("Uploading PDF and sending email...");
 
     //     try {
-    //       const res = await fetch("/api/requests", {
-    //         method: "PUT",
-    //         body: formData,
-    //       });
-    //       const data = await res.json();
+    //         // Step 1: Send file + update Supabase
+    //         const res = await fetch("/api/requests", { method: "PUT", body: formData });
+    //         const data = await res.json();
 
-    //       if (data.success) {
-    //         setMessage("✅ File sent successfully!");
+    //         if (!data.success) {
+    //             setMessage(`❌ ${data.message}`);
+    //             return;
+    //         }
+
+    //         setMessage("✅ File sent successfully! Registering on blockchain...");
+
+    //         // Step 2: Connect MetaMask wallet
+    //         const walletAddress = await connectWallet();
+
+    //         // Step 3: Register request on blockchain
+    //         await registerRequestOnChain(
+    //             selectedRequest.m_certificate_id,
+    //             walletAddress,
+    //             selectedRequest.purpose,
+    //             file.name
+    //         );
+
+    //         setMessage("✅ Request successfully registered on blockchain!");
     //         setModalOpen(false);
     //         fetchRequests(); // refresh table
-    //       } else {
-    //         setMessage(`❌ ${data.message}`);
-    //       }
+
     //     } catch (err) {
-    //       console.error(err);
-    //       setMessage("❌ Unexpected error occurred");
+    //         console.error(err);
+    //         setMessage("❌ Unexpected error occurred");
     //     }
-    //   };
-    // const handleSubmit = async () => {
-    //   if (!file || !selectedRequest) return;
-
-    //   // Ensure email is defined
-    //   const email = selectedRequest.email;
-    //   if (!email) {
-    //     setMessage("❌ Resident email not found!");
-    //     return;
-    //   }
-
-    //   const formData = new FormData();
-    //   formData.append("file", file);
-    //   formData.append("request_id", selectedRequest.id.toString());
-    //   formData.append("email", email); // safe, not undefined
-
-    //   setMessage("Uploading PDF and sending email...");
-
-    //   try {
-    //     const res = await fetch("/api/requests", {
-    //       method: "PUT",
-    //       body: formData,
-    //     });
-    //     const data = await res.json();
-
-    //     if (data.success) {
-    //       setMessage("✅ File sent successfully!");
-    //       setModalOpen(false);
-    //       fetchRequests(); // refresh table
-    //     } else {
-    //       setMessage(`❌ ${data.message}`);
-    //     }
-    //   } catch (err) {
-    //     console.error(err);
-    //     setMessage("❌ Unexpected error occurred");
-    //   }
     // };
-
     const handleSubmit = async () => {
         if (!file || !selectedRequest) return;
 
@@ -146,10 +132,10 @@ const RequestPage = () => {
         formData.append("request_id", selectedRequest.id.toString());
         formData.append("email", email);
 
-        setMessage("Uploading PDF and sending email...");
+        setMessage("📤 Uploading PDF and sending email...");
 
         try {
-            // Step 1: Send file + update Supabase
+            // Step 1: Upload + update Supabase
             const res = await fetch("/api/requests", { method: "PUT", body: formData });
             const data = await res.json();
 
@@ -158,23 +144,33 @@ const RequestPage = () => {
                 return;
             }
 
-            setMessage("✅ File sent successfully! Registering on blockchain...");
+            setMessage("✅ File uploaded and email sent!");
 
-            // Step 2: Connect MetaMask wallet
-            const walletAddress = await connectWallet();
+            // Step 2: Register on blockchain (optional)
+            if (hasMetaMask) {
+                try {
+                    setMessage("🔗 Connecting MetaMask...");
+                    const walletAddress = await connectWallet();
 
-            // Step 3: Register request on blockchain
-            await registerRequestOnChain(
-                selectedRequest.m_certificate_id,
-                walletAddress,
-                selectedRequest.purpose,
-                file.name
-            );
+                    setMessage("🪙 Registering request on blockchain...");
+                    await registerRequestOnChain(
+                        selectedRequest.m_certificate_id,
+                        walletAddress,
+                        selectedRequest.purpose,
+                        file.name
+                    );
 
-            setMessage("✅ Request successfully registered on blockchain!");
+                    setMessage("✅ Request registered successfully on blockchain!");
+                } catch (blockchainErr) {
+                    console.error(blockchainErr);
+                    setMessage("⚠️ Upload succeeded, but blockchain registration failed.");
+                }
+            } else {
+                setMessage("⚠️ MetaMask not detected — skipping blockchain registration.");
+            }
+
             setModalOpen(false);
             fetchRequests(); // refresh table
-
         } catch (err) {
             console.error(err);
             setMessage("❌ Unexpected error occurred");
@@ -184,7 +180,11 @@ const RequestPage = () => {
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-4">Requests</h1>
-
+            {!hasMetaMask && (
+                <p className="text-blue-600 mt-2">
+                    ⚠️ MetaMask not detected. Uploads will work, but blockchain recording is skipped.
+                </p>
+            )}
             {loading ? (
                 <p>Loading...</p>
             ) : requests.length === 0 ? (
@@ -220,8 +220,10 @@ const RequestPage = () => {
                                     <td className="px-4 py-2 border">{req.payment_status}</td>
                                     <td className="px-4 py-2 border">
                                         <button
-                                            className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+                                            className={`px-2 py-1 rounded text-white bg-blue-600 hover:bg-blue-700`}
                                             onClick={() => openModal(req)}
+                                            // disabled={!hasMetaMask}
+                                            // disabled={false}
                                         >
                                             Update
                                         </button>
