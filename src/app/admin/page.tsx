@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../_components/navbar"; // matches the file exactly
-import Officials from "../_components/officials";
-import Residents from "../_components/residents";
+import Officials from "./_components/officials";
+import Residents from "./_components/residents";
 
 export default function AdminPage() {
   const router = useRouter();
