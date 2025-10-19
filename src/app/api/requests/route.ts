@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 import nodemailer from "nodemailer";
-// import formidable from "formidable";
 import fs from "fs";
 import path from "path";
-import { registerRequestOnChain } from "@/lib/blockchain";
-import { IncomingMessage } from "http";
 import formidable, { File } from "formidable";
+import { IncomingMessage } from "http";
 
 function parseForm(req: Request): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
   return new Promise((resolve, reject) => {
@@ -18,33 +16,25 @@ function parseForm(req: Request): Promise<{ fields: formidable.Fields; files: fo
   });
 }
 
-// Disable Next.js default body parsing
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// Disable default body parser
+export const config = { api: { bodyParser: false } };
 
-
-// GET → fetch requests (optionally filter by resident_id or status)
+// GET → fetch requests
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const resident_id = url.searchParams.get("resident_id"); // optional
-    const status = url.searchParams.get("status"); // optional, e.g., pending, approved
+    const resident_id = url.searchParams.get("resident_id");
+    const status = url.searchParams.get("status");
 
-    // Step 1: Fetch requests
     let query = supabase.from("mRequest").select("*").order("id", { ascending: true });
     if (resident_id) query = query.eq("resident_id", resident_id);
     if (status) query = query.eq("status", status);
 
     const { data: requests, error } = await query;
     if (error) throw error;
-
     if (!requests) return NextResponse.json({ success: true, data: [] });
 
-    // Step 2: Fetch users for resident_ids
-    const residentIds = [...new Set(requests.map((r) => r.resident_id))]; // unique IDs
+    const residentIds = [...new Set(requests.map((r) => r.resident_id))];
     const { data: users, error: usersError } = await supabase
       .from("mUsers")
       .select("id, email")
@@ -52,7 +42,6 @@ export async function GET(req: Request) {
 
     if (usersError) throw usersError;
 
-    // Step 3: Map email to requests
     const requestsWithEmail = requests.map((r) => {
       const user = users?.find((u) => u.id === r.resident_id);
       return { ...r, email: user?.email || "" };
@@ -65,177 +54,114 @@ export async function GET(req: Request) {
   }
 }
 
-// POST → create a new request
-// export async function POST(req: Request) {
-//   try {
-//     const body = await req.json();
-//     const { m_certificate_id, resident_id, purpose } = body;
-
-//     if (!m_certificate_id || !resident_id || !purpose) {
-//       return NextResponse.json(
-//         { success: false, message: "m_certificate_id, resident_id, and purpose are required" },
-//         { status: 400 }
-//       );
-//     }
-
-//     const insertData = {
-//       m_certificate_id,
-//       resident_id,
-//       purpose,
-//       document_type: body.document_type || "",
-//       request_date: body.request_date || new Date().toISOString().split("T")[0],
-//       priority: body.priority || "Normal",
-//       status: "pending",
-//       payment_status: "unpaid",
-//       del_flag: 0,
-//       created_at: new Date().toISOString(),
-//       updated_at: new Date().toISOString(),
-//     };
-
-//     const { data, error } = await supabase.from("mRequest").insert([insertData]).select().single();
-
-//     if (error) throw error;
-
-//     return NextResponse.json({ success: true, message: "Request submitted successfully", data });
-//   } catch (err) {
-//     const message = err instanceof Error ? err.message : "Unexpected error";
-//     return NextResponse.json({ success: false, message }, { status: 500 });
-//   }
-// }
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    console.log("Received body:", body); // ✅ log incoming data
-
-    const { mCertificateId, resident_id, purpose } = body;
-
-    if (!mCertificateId || !resident_id || !purpose) {
-      return NextResponse.json(
-        { success: false, message: "mCertificateId, resident_id, and purpose are required" },
-        { status: 400 }
-      );
-    }
-
-    const insertData = {
-      mCertificateId: Number(mCertificateId),
-      resident_id: Number(resident_id),
-      purpose,
-      document_type: body.document_type || "",
-      request_date: body.request_date || new Date().toISOString().split("T")[0],
-      priority: body.priority || "Normal",
-      status: "pending",
-      payment_status: "unpaid",
-      del_flag: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    console.log("Inserting data:", insertData);
-
-    const { data, error } = await supabase.from("mRequest").insert([insertData]).select().single();
-
-    if (error) {
-      console.error("Supabase insert error:", error);
-      throw error;
-    }
-
-    return NextResponse.json({ success: true, message: "Request submitted successfully", data });
-  } catch (err) {
-    console.error("POST /api/requests failed:", err); // ✅ print the real error
-    const message = err instanceof Error ? err.message : "Unexpected error";
-    return NextResponse.json({ success: false, message }, { status: 500 });
-  }
-}
-
-
+// PUT → upload PDF and mark request completed
 export async function PUT(req: Request) {
   try {
     const formData = await req.formData();
     const request_id = formData.get("request_id")?.toString();
-    const email = formData.get("email")?.toString();
     const file = formData.get("file") as (Blob & { name: string }) | null;
+    const blockchain = formData.get("blockchain")?.toString() === "1";
+    const tx_hash = formData.get("tx_hash")?.toString();
 
-    if (!request_id || !email || !file) {
-      return NextResponse.json(
-        { success: false, message: "Missing request_id, email, or file" },
-        { status: 400 }
-      );
+    if (!request_id || !file) {
+      return NextResponse.json({ success: false, message: "Missing request_id or file" }, { status: 400 });
     }
 
+    // Save PDF
     const buffer = Buffer.from(await file.arrayBuffer());
     const uploadDir = path.join(process.cwd(), "uploads");
     fs.mkdirSync(uploadDir, { recursive: true });
     const filePath = path.join(uploadDir, `${Date.now()}-${file.name}`);
     fs.writeFileSync(filePath, buffer);
 
-    // Send email
-    const transporter = nodemailer.createTransport({
-      host: process.env.NEXT_PUBLIC_SMTP_HOST,
-      port: Number(process.env.NEXT_PUBLIC_SMTP_PORT),
-      auth: {
-        user: process.env.NEXT_PUBLIC_SMTP_USER,
-        pass: process.env.NEXT_PUBLIC_SMTP_PASS,
-      },
-    });
+    // Fetch request to get resident_id
+    const { data: requestData, error: requestError } = await supabase
+      .from("mRequest")
+      .select("id, resident_id")
+      .eq("id", request_id)
+      .single();
+    if (requestError || !requestData) throw requestError || new Error("Request not found");
 
-    await transporter.sendMail({
-      from: process.env.NEXT_PUBLIC_SMTP_USER ?? undefined,
-      to: email,
-      subject: "Your Requested Document",
-      html: `
-  <div style="font-family: Arial, sans-serif; background-color: #f3f6f9; padding: 24px;">
-    <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-      <div style="background-color: #2563eb; color: #ffffff; padding: 16px 24px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-        <h2 style="margin: 0; font-size: 20px;">Barangay Konek</h2>
-      </div>
-      <div style="padding: 24px; background: #ffffff;">
-        <h3 style="margin: 0 0 12px; color: #1f2937;">Your Requested Document is Ready</h3>
-        <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-          Dear Resident,
-        </p>
-        <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-          Thank you for using our service. Please find the attached document you requested.
-        </p>
-        <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-          If you have any concerns or need additional assistance, feel free to reply to this email.
-        </p>
-        <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
-          Best regards,<br/>
-          <strong>Barangay Konek Team</strong>
-        </p>
-      </div>
-      </div>
-      <div style="text-align: center; padding: 16px; font-size: 12px; color: #777;">
-          &copy; ${new Date().getFullYear()} Barangay Konek. All rights reserved.
-        </div>
-  </div>
-  `,
-      attachments: [
-        { filename: file.name, path: filePath }
-      ],
-    });
+    // Fetch email from mUsers using resident_id
+    const { data: userData, error: userError } = await supabase
+      .from("mUsers")
+      .select("email")
+      .eq("id", requestData.resident_id)
+      .single();
+    if (userError) throw userError;
 
+    const email = userData?.email;
 
-    // Update Supabase
+    // Prepare data for updating request
+    const updateData: any = { status: "completed", document_type: file.name };
+    if (blockchain && tx_hash) updateData.tx_hash = tx_hash;
+
     const { data, error } = await supabase
       .from("mRequest")
-      .update({ status: "completed", document_type: file.name })
+      .update(updateData)
       .eq("id", request_id)
       .select()
       .single();
-
     if (error) throw error;
 
-    // Return data; blockchain registration happens client-side
-    return NextResponse.json({
-      success: true,
-      message: "Request updated, PDF saved, and email sent",
-      data,
-    });
+    // Send email if blockchain step included
+    if (blockchain && tx_hash && email) {
+      const transporter = nodemailer.createTransport({
+        host: process.env.NEXT_PUBLIC_SMTP_HOST,
+        port: Number(process.env.NEXT_PUBLIC_SMTP_PORT),
+        auth: {
+          user: process.env.NEXT_PUBLIC_SMTP_USER,
+          pass: process.env.NEXT_PUBLIC_SMTP_PASS,
+        },
+      });
+
+      await transporter.sendMail({
+        from: process.env.NEXT_PUBLIC_SMTP_USER ?? undefined,
+        to: email,
+        subject: "Your Requested Document",
+        html: `
+        <div style="font-family: Arial, sans-serif; background-color: #f3f6f9; padding: 24px;">
+          <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+            <div style="background-color: #2563eb; color: #ffffff; padding: 16px 24px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+              <h2 style="margin: 0; font-size: 20px;">Barangay Konek</h2>
+            </div>
+            <div style="padding: 24px; background: #ffffff;">
+              <h3 style="margin: 0 0 12px; color: #1f2937;">Your Requested Document is Ready</h3>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                Dear Resident,
+              </p>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                Thank you for using our service. Please find the attached document you requested.
+              </p>
+              ${
+                tx_hash
+                  ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                      Blockchain transaction: <a href="https://sepolia-blockscout.lisk.com/tx/${tx_hash}">${tx_hash}</a>
+                     </p>`
+                  : ""
+              }
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                If you have any concerns or need additional assistance, feel free to reply to this email.
+              </p>
+              <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
+                Best regards,<br/>
+                <strong>Barangay Konek Team</strong>
+              </p>
+            </div>
+          </div>
+          <div style="text-align: center; padding: 16px; font-size: 12px; color: #777;">
+            &copy; ${new Date().getFullYear()} Barangay Konek. All rights reserved.
+          </div>
+        </div>
+        `,
+        attachments: [{ filename: file.name, path: filePath }],
+      });
+    }
+
+    return NextResponse.json({ success: true, message: "PDF uploaded and request updated", data });
   } catch (err) {
     console.error(err);
     const message = err instanceof Error ? err.message : "Unexpected error";
     return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }
-

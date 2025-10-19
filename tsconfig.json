@@ -34,7 +34,7 @@
     "next-env.d.ts",
     "src/types",
     ".next/types/**/*.ts"
-  ],
+, "blockchain/hardhat.config.ts - copy", "blockchain/scripts/send-op-tx.ts - copy"  ],
   "exclude": [
     "node_modules"
   ]
