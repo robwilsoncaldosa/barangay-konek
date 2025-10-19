@@ -28,6 +28,7 @@ export async function loginUser(email: string, password: string): Promise<LoginR
       .from('mUsers')
       .select('*')
       .eq('email', email)
+      .eq('del_flag', 0) // Only get active users
       .single()
 
     if (error || !user) {
@@ -48,28 +49,24 @@ export async function loginUser(email: string, password: string): Promise<LoginR
       }
     }
 
-    // Create a proper Supabase auth session using signInWithPassword
-    // First, we need to sign them in with Supabase auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password
-    })
-
-    if (authError) {
-      // If Supabase auth fails, create a custom session
-      const cookieStore = await cookies()
-      cookieStore.set('custom-auth-user', JSON.stringify({
-        id: user.id,
-        email: user.email,
-        user_type: user.user_type,
-        mbarangayid: user.mbarangayid
-      }), {
-        path: '/',
-        maxAge: 3600, // 1 hour
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-      })
+    // Check if user is not deleted
+    if (user.del_flag === 1) {
+      return { success: false, error: 'Account not found' }
     }
+
+    // Create a custom session since we're using our own password hashing
+    const cookieStore = await cookies()
+    cookieStore.set('custom-auth-user', JSON.stringify({
+      id: user.id,
+      email: user.email,
+      user_type: user.user_type,
+      mbarangayid: user.mbarangayid
+    }), {
+      path: '/',
+      maxAge: 3600, // 1 hour
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+    })
 
     return {
       success: true,
