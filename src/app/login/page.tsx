@@ -4,7 +4,7 @@ import { FormSection } from './_components/form-section'
 
 export default function ResidentLoginPage() {
   return (
-    <div className="min-h-screen bg-muted flex">
+    <div className="min-h-screen flex">
       <BrandingSection />
       <FormSection action={loginResidentAction} />
     </div>
