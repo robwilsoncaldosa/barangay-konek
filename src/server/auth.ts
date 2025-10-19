@@ -4,18 +4,15 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import type { Database } from '../../database.types'
+
+type User = Database['public']['Tables']['mUsers']['Row']
 
 // Types for better type safety
 export interface LoginResult {
   success: boolean
   error?: string
-  user?: {
-    id: string
-    first_name: string
-    last_name: string
-    email: string
-    user_type: 'resident' | 'admin' | 'official'
-  }
+  user?: Pick<User, 'id' | 'first_name' | 'last_name' | 'email' | 'user_type'>
 }
 
 export async function loginUser(email: string, password: string): Promise<LoginResult> {
@@ -77,11 +74,11 @@ export async function loginUser(email: string, password: string): Promise<LoginR
     return {
       success: true,
       user: {
-        id: user.id.toString(),
+        id: user.id,
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,
-        user_type: user.user_type as 'resident' | 'admin' | 'official',
+        user_type: user.user_type,
       },
     }
   } catch (error) {

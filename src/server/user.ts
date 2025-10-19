@@ -7,19 +7,14 @@ type User = Database['public']['Tables']['mUsers']['Row']
 type UserInsert = Database['public']['Tables']['mUsers']['Insert']
 type UserUpdate = Database['public']['Tables']['mUsers']['Update']
 
-interface CustomAuthUser {
-  id: number
-  email: string
-  user_type: 'official' | 'resident'
-  mbarangayid: number
-}
+type CustomAuthUser = Pick<User, 'id' | 'email' | 'user_type' | 'mbarangayid'>
 
 export interface AuthUser {
   id: number
   email: string
   user_metadata: {
-    user_type: 'official' | 'resident'
-    mbarangayid: number
+    user_type: Pick<User, 'user_type'>['user_type']
+    mbarangayid: Pick<User, 'mbarangayid'>['mbarangayid']
   }
 }
 
@@ -97,21 +92,9 @@ export async function getUsersByType(userType: 'official' | 'resident' = 'offici
   }
 }
 
-export async function createUser(userData: {
-  first_name: string
-  last_name: string
-  email: string
-  password: string
-  birthdate: string
-  permanent_address: string
-  permanent_barangay: string
-  current_address: string
-  current_barangay: string
-  contact_no: string
-  middle_name?: string
-  mbarangayid: number
-  user_type: 'official' | 'resident'
-}): Promise<{ success: boolean; data?: User; error?: string }> {
+export async function createUser(
+  userData: Pick<UserInsert, 'first_name' | 'last_name' | 'email' | 'password' | 'birthdate' | 'permanent_address' | 'permanent_barangay' | 'current_address' | 'current_barangay' | 'contact_no' | 'middle_name' | 'mbarangayid' | 'user_type'>
+): Promise<{ success: boolean; data?: User; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
     const insertData: UserInsert = {
@@ -142,22 +125,7 @@ export async function createUser(userData: {
 
 export async function updateUser(
   userId: string, 
-  userData: Partial<{
-    first_name: string
-    last_name: string
-    email: string
-    password: string
-    birthdate: string
-    permanent_address: string
-    permanent_barangay: string
-    current_address: string
-    current_barangay: string
-    contact_no: string
-    middle_name: string
-    mbarangayid: number
-    user_type: 'official' | 'resident'
-    sign_up_status: string
-  }>
+  userData: Pick<UserUpdate, 'first_name' | 'last_name' | 'email' | 'password' | 'birthdate' | 'permanent_address' | 'permanent_barangay' | 'current_address' | 'current_barangay' | 'contact_no' | 'middle_name' | 'mbarangayid' | 'user_type' | 'sign_up_status'>
 ): Promise<{ success: boolean; data?: User; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()

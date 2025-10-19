@@ -48,17 +48,13 @@ export async function getCertificateById(certificateId: string): Promise<Certifi
   }
 }
 
-export async function createCertificate(certificateData: {
-  name: string
-  description?: string
-  requirements?: string
-  fee?: number
-}): Promise<{ success: boolean; data?: Certificate; error?: string }> {
+export async function createCertificate(
+  certificateData: Pick<CertificateInsert, 'name' | 'requirements' | 'fee'>
+): Promise<{ success: boolean; data?: Certificate; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
     const insertData: CertificateInsert = {
       name: certificateData.name,
-      ...(certificateData.description && { description: certificateData.description }),
       ...(certificateData.requirements && { requirements: certificateData.requirements }),
       ...(certificateData.fee !== undefined && { fee: certificateData.fee }),
       created_at: new Date().toISOString(),
@@ -86,12 +82,7 @@ export async function createCertificate(certificateData: {
 
 export async function updateCertificate(
   certificateId: string, 
-  certificateData: Partial<{
-    name: string
-    description: string
-    requirements: string
-    fee: number
-  }>
+  certificateData: Pick<CertificateUpdate, 'name' | 'requirements' | 'fee'>
 ): Promise<{ success: boolean; data?: Certificate; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()

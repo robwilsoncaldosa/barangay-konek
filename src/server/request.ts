@@ -17,7 +17,7 @@ interface RequestWithUser extends Request {
 
 export async function getRequests(filters?: {
   resident_id?: string
-  status?: string
+  status?: Pick<Request, 'status'>['status']
 }): Promise<RequestWithUser[]> {
   try {
     const supabase = await createSupabaseServerClient()
@@ -92,14 +92,9 @@ export async function getRequestById(requestId: string): Promise<Request | null>
   }
 }
 
-export async function createRequest(requestData: {
-  mCertificateId: number
-  resident_id: number
-  purpose: string
-  document_type?: string
-  request_date?: string
-  priority?: string
-}): Promise<{ success: boolean; data?: Request; error?: string }> {
+export async function createRequest(
+  requestData: Pick<RequestInsert, 'mCertificateId' | 'resident_id' | 'purpose' | 'document_type' | 'request_date' | 'priority'>
+): Promise<{ success: boolean; data?: Request; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
     const insertData: RequestInsert = {
