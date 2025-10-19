@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer"; // For sending email
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
 import bcrypt from "bcryptjs";
+import { supabase } from "@/lib/supabase/server";
 
 // GET → fetch users by type
 export async function GET(req: Request) {
@@ -129,7 +129,7 @@ export async function GET(req: Request) {
 //         <div style="background-color: #2563eb; padding: 16px 24px;">
 //           <h2 style="color: #ffffff; margin: 0;">Barangay Konek</h2>
 //         </div>
-        
+
 //         <div style="padding: 24px;">
 //           <p style="font-size: 16px;">Hi <strong>${first_name}</strong>,</p>
 //           <p style="font-size: 15px; line-height: 1.6;">
