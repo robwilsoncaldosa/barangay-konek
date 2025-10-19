@@ -11,10 +11,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Development mode bypass - allow access to all pages without authentication
+  // Development mode - use mock user with ID 7 for full access
   if (process.env.NODE_ENV === 'development') {
-    console.log('Development mode: Bypassing authentication middleware')
-    return NextResponse.next()
+    console.log('Development mode: Using mock user ID 7 with super_admin access')
+    const mockUser = {
+      id: 7,
+      first_name: 'Dev',
+      last_name: 'User',
+      email: 'dev@barangay-konek.local',
+      user_type: 'super_admin',
+      mbarangayid: 1
+    }
+    
+    const response = NextResponse.next()
+    response.headers.set('x-user-data', JSON.stringify(mockUser))
+    return response
   }
 
   // Check if Supabase credentials are configured
@@ -27,7 +38,7 @@ export async function middleware(request: NextRequest) {
     request,
   })
 
-  const supabase = createServerClient(
+  createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -48,15 +59,25 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   const { pathname } = request.nextUrl
+
+  // Get user session from cookies
+  const userCookie = request.cookies.get('user-session')
+  let user = null
+
+  if (userCookie) {
+    try {
+      user = JSON.parse(userCookie.value)
+    } catch (error) {
+      console.error('Error parsing user session:', error)
+      // Clear invalid cookie
+      const response = NextResponse.next()
+      response.cookies.delete('user-session')
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+  }
 
   // If user is not signed in and the current path is not login or register, redirect to login
   if (!user && !pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
@@ -68,10 +89,10 @@ export async function middleware(request: NextRequest) {
   // If user is signed in and trying to access login or register, redirect to appropriate dashboard
   if (user && (pathname.startsWith('/login') || pathname.startsWith('/register'))) {
     const url = request.nextUrl.clone()
-    
-    // Get user metadata to determine user type
-    const userType = user.user_metadata?.user_type
-    
+
+    // Get user type from session
+    const userType = user.user_type
+
     if (userType === 'super_admin') {
       url.pathname = '/admin'
     } else if (userType === 'official') {
@@ -81,24 +102,61 @@ export async function middleware(request: NextRequest) {
     } else {
       url.pathname = '/resident' // default fallback
     }
-    
+
     return NextResponse.redirect(url)
   }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
-  // creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object to fit your needs, but avoid changing
-  //    the cookies!
-  // 4. Finally:
-  //    return myNewResponse
-  // If this is not done, you may be causing the browser and server to go out
-  // of sync and terminate the user's session prematurely!
+  // Role-based access control for specific routes
+  if (user) {
+    const userType = user.user_type
 
-  return supabaseResponse
+    // Resident route protection
+    if (pathname.startsWith('/resident') && userType !== 'resident') {
+      const url = request.nextUrl.clone()
+      if (userType === 'super_admin') {
+        url.pathname = '/admin'
+      } else if (userType === 'official') {
+        url.pathname = '/official'
+      } else {
+        url.pathname = '/login'
+      }
+      return NextResponse.redirect(url)
+    }
+
+    // Official route protection
+    if (pathname.startsWith('/official') && userType !== 'official') {
+      const url = request.nextUrl.clone()
+      if (userType === 'super_admin') {
+        url.pathname = '/admin'
+      } else if (userType === 'resident') {
+        url.pathname = '/resident'
+      } else {
+        url.pathname = '/login'
+      }
+      return NextResponse.redirect(url)
+    }
+
+    // Admin route protection
+    if (pathname.startsWith('/admin') && userType !== 'super_admin') {
+      const url = request.nextUrl.clone()
+      if (userType === 'official') {
+        url.pathname = '/official'
+      } else if (userType === 'resident') {
+        url.pathname = '/resident'
+      } else {
+        url.pathname = '/login'
+      }
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Add user data to request headers for pages to access
+  const response = NextResponse.next()
+  if (user) {
+    response.headers.set('x-user-data', JSON.stringify(user))
+  }
+
+  return response
 }
 
 export const config = {

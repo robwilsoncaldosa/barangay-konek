@@ -56,6 +56,24 @@ export async function loginUser(email: string, password: string): Promise<LoginR
 
     // Create a custom session since we're using our own password hashing
     const cookieStore = await cookies()
+    
+    // Set user session cookie for middleware
+    const userSession = {
+      id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      user_type: user.user_type
+    }
+    
+    cookieStore.set('user-session', JSON.stringify(userSession), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7 // 7 days
+    })
+
+    // Legacy cookie for backward compatibility
     cookieStore.set('custom-auth-user', JSON.stringify({
       id: user.id,
       email: user.email,
@@ -68,15 +86,10 @@ export async function loginUser(email: string, password: string): Promise<LoginR
       secure: process.env.NODE_ENV === 'production',
     })
 
+    // Return user data without password
     return {
       success: true,
-      user: {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        user_type: user.user_type,
-      },
+      user: userSession
     }
   } catch (error) {
     console.error('Login error:', error)
@@ -133,6 +146,7 @@ export async function logoutUser() {
 
     // Clear custom authentication cookies
     cookieStore.set('custom-auth-user', '', { path: '/', maxAge: 0 })
+    cookieStore.set('user-session', '', { path: '/', maxAge: 0 })
 
     return { success: true, message: 'Logged out successfully' }
   } catch (error) {
