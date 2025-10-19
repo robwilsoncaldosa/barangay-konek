@@ -113,9 +113,14 @@ export async function updateCertificate(
 export async function deleteCertificate(certificateId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
+    
+    // Soft delete by setting del_flag to 1
     const { error } = await supabase
       .from('mCertificate')
-      .delete()
+      .update({ 
+        del_flag: 1,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', Number(certificateId))
 
     if (error) {
