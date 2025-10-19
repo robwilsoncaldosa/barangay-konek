@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { NextPage } from "next";
 import Navbar from "../_components/navbar";
+import Residents from "../admin/_components/residents";
 
 type Certificate = {
   id: number;
