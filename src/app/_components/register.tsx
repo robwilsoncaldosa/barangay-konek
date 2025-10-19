@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createUser } from "@/server/user";
 // import { getContract } from "@/lib/blockchain"; // used only for officials
 
 declare global {
@@ -62,16 +63,24 @@ export default function Register({ userType }: RegisterProps) {
     setMessage("Creating account...");
 
     try {
-      // ✅ Step 1: Save user to backend
-      const res = await fetch("/api/mUsers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      // ✅ Step 1: Save user to backend using server action
+      const result = await createUser({
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        password: formData.password,
+        birthdate: formData.birthdate,
+        permanent_address: formData.permanent_address,
+        permanent_barangay: formData.permanent_barangay,
+        current_address: formData.current_address,
+        current_barangay: formData.current_barangay,
+        contact_no: formData.contact_no,
+        middle_name: formData.middle_name,
+        mbarangayid: Number(formData.mBarangayId),
+        user_type: formData.user_type as 'official' | 'resident',
       });
 
-      const data = await res.json();
-
-      if (res.ok && data.success) {
+      if (result.success) {
         // ✅ Step 2: Officials are also registered on blockchain
         // if (userType === "official") {
         //   try {
@@ -95,7 +104,7 @@ export default function Register({ userType }: RegisterProps) {
         setMessage("✅ Account created successfully!");
         router.push(`/register/success?userType=${userType}`);
       } else {
-        setMessage(`❌ ${data.message}`);
+        setMessage(`❌ ${result.error}`);
       }
     } catch (err) {
       console.error(err);
