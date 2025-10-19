@@ -222,8 +222,8 @@ const RequestPage = () => {
                                         <button
                                             className={`px-2 py-1 rounded text-white bg-blue-600 hover:bg-blue-700`}
                                             onClick={() => openModal(req)}
-                                            // disabled={!hasMetaMask}
-                                            // disabled={false}
+                                        // disabled={!hasMetaMask}
+                                        // disabled={false}
                                         >
                                             Update
                                         </button>
