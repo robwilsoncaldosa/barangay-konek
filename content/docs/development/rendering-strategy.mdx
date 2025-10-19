@@ -1,0 +1,567 @@
+---
+title: Rendering Strategy
+description: Complete guide to rendering strategies in Barangay Konek - server-side first approach
+---
+
+# Rendering Strategy
+
+The Barangay Konek project follows a **server-side first** approach, prioritizing server-side rendering (SSR) for optimal performance, SEO, and user experience.
+
+## Core Principle: Server-Side First
+
+**Prefer server-side rendering (SSR) for all features.**
+
+### Benefits of Server-Side Rendering
+
+1. **Better Performance**: Faster initial page loads
+2. **SEO Optimization**: Search engines can crawl content effectively
+3. **Improved UX**: Users see content immediately
+4. **Reduced JavaScript Bundle**: Less client-side code
+5. **Better Security**: Sensitive operations stay on the server
+
+## When to Use Server Components
+
+Use server components (default in Next.js 13+ App Router) for:
+
+- **Static content display**
+- **Data fetching and display**
+- **Form rendering**
+- **Navigation components**
+- **Layout components**
+- **SEO-critical pages**
+
+### Server Component Examples
+
+#### Data Fetching and Display
+
+```tsx
+// app/(resident)/requests/page.tsx
+import { getRequests } from '@/server/certificate/getRequests'
+import { validateSession } from '@/server/auth/validateSession'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+
+export default async function RequestsPage() {
+  // Server-side data fetching
+  const session = await validateSession()
+  const requests = await getRequests(session.user.id)
+  
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold text-primary mb-6">My Certificate Requests</h1>
+      
+      <div className="grid gap-4">
+        {requests.map((request) => (
+          <Card key={request.id} className="bg-surface">
+            <CardHeader>
+              <h3 className="text-primary">{request.type}</h3>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted">Status: {request.status}</p>
+              <p className="text-muted">Created: {formatDate(request.createdAt)}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+#### Static Layout Components
+
+```tsx
+// components/layout/header.tsx
+import { validateSession } from '@/server/auth/validateSession'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+
+export async function Header() {
+  const session = await validateSession()
+  
+  return (
+    <header className="bg-primary text-surface p-4">
+      <div className="container mx-auto flex justify-between items-center">
+        <Link href="/" className="text-xl font-bold">
+          Barangay Konek
+        </Link>
+        
+        <nav className="flex gap-4">
+          {session ? (
+            <>
+              <Link href="/dashboard">
+                <Button variant="ghost">Dashboard</Button>
+              </Link>
+              <Link href="/profile">
+                <Button variant="ghost">Profile</Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost">Login</Button>
+              </Link>
+              <Link href="/register">
+                <Button variant="ghost">Register</Button>
+              </Link>
+            </>
+          )}
+        </nav>
+      </div>
+    </header>
+  )
+}
+```
+
+## When to Use Client Components
+
+Use client components **only when necessary** for:
+
+- **Interactive UI elements** (forms with real-time validation)
+- **Browser APIs** (localStorage, geolocation, etc.)
+- **Event handlers** (onClick, onChange, etc.)
+- **State management** (useState, useReducer)
+- **Effects** (useEffect, custom hooks)
+- **Real-time features** (WebSocket connections)
+
+### Client Component Examples
+
+#### Interactive Form with Validation
+
+```tsx
+// app/(resident)/request-certificate/_components/certificate-form.tsx
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { useForm } from 'react-hook-form'
+import { createCertificateRequest } from '@/server/certificate/createRequest'
+
+interface CertificateFormProps {
+  userId: string
+}
+
+export function CertificateForm({ userId }: CertificateFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const form = useForm<CertificateRequestData>()
+  
+  const onSubmit = async (data: CertificateRequestData) => {
+    setIsSubmitting(true)
+    
+    try {
+      await createCertificateRequest({ ...data, userId })
+      // Handle success (redirect, show message, etc.)
+    } catch (error) {
+      // Handle error
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+  
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-primary">Certificate Type</FormLabel>
+              <FormControl>
+                <select 
+                  {...field} 
+                  className="w-full p-2 border border-muted bg-surface"
+                >
+                  <option value="">Select certificate type</option>
+                  <option value="clearance">Barangay Clearance</option>
+                  <option value="residency">Certificate of Residency</option>
+                </select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button 
+          type="submit" 
+          disabled={isSubmitting}
+          className="bg-primary"
+        >
+          {isSubmitting ? 'Submitting...' : 'Submit Request'}
+        </Button>
+      </form>
+    </Form>
+  )
+}
+```
+
+#### Real-time Status Updates
+
+```tsx
+// app/(resident)/requests/_components/request-status.tsx
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClientClient } from '@/lib/supabase/client'
+import { Badge } from '@/components/ui/badge'
+
+interface RequestStatusProps {
+  requestId: string
+  initialStatus: string
+}
+
+export function RequestStatus({ requestId, initialStatus }: RequestStatusProps) {
+  const [status, setStatus] = useState(initialStatus)
+  const supabase = createClientClient()
+  
+  useEffect(() => {
+    // Subscribe to real-time updates
+    const subscription = supabase
+      .channel(`request-${requestId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'certificate_requests',
+          filter: `id=eq.${requestId}`
+        },
+        (payload) => {
+          setStatus(payload.new.status)
+        }
+      )
+      .subscribe()
+    
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [requestId, supabase])
+  
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-500'
+      case 'approved': return 'bg-green-500'
+      case 'rejected': return 'bg-red-500'
+      default: return 'bg-gray-500'
+    }
+  }
+  
+  return (
+    <Badge className={getStatusColor(status)}>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </Badge>
+  )
+}
+```
+
+## Hybrid Approach: Server + Client
+
+Combine server and client components effectively by using server components as the default and adding client components only where needed.
+
+### Example: Dashboard Page
+
+```tsx
+// app/(admin)/dashboard/page.tsx (Server Component)
+import { getStatistics } from '@/server/barangay/getStatistics'
+import { getRecentRequests } from '@/server/certificate/getRecentRequests'
+import { DashboardStats } from './_components/dashboard-stats'
+import { RecentRequests } from './_components/recent-requests'
+import { InteractiveChart } from './_components/interactive-chart' // Client component
+
+export default async function DashboardPage() {
+  // Server-side data fetching
+  const [statistics, recentRequests] = await Promise.all([
+    getStatistics(),
+    getRecentRequests()
+  ])
+  
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold text-primary mb-6">Dashboard</h1>
+      
+      {/* Server component for static data */}
+      <DashboardStats statistics={statistics} />
+      
+      {/* Server component for list display */}
+      <RecentRequests requests={recentRequests} />
+      
+      {/* Client component for interactivity */}
+      <InteractiveChart data={statistics.chartData} />
+    </div>
+  )
+}
+```
+
+```tsx
+// app/(admin)/dashboard/_components/dashboard-stats.tsx (Server Component)
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+
+interface DashboardStatsProps {
+  statistics: {
+    totalRequests: number
+    pendingRequests: number
+    completedRequests: number
+    activeUsers: number
+  }
+}
+
+export function DashboardStats({ statistics }: DashboardStatsProps) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <Card className="bg-surface">
+        <CardHeader>
+          <h3 className="text-primary">Total Requests</h3>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold text-accent">{statistics.totalRequests}</p>
+        </CardContent>
+      </Card>
+      
+      <Card className="bg-surface">
+        <CardHeader>
+          <h3 className="text-primary">Pending</h3>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold text-yellow-500">{statistics.pendingRequests}</p>
+        </CardContent>
+      </Card>
+      
+      {/* More stat cards */}
+    </div>
+  )
+}
+```
+
+```tsx
+// app/(admin)/dashboard/_components/interactive-chart.tsx (Client Component)
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+
+interface InteractiveChartProps {
+  data: ChartData[]
+}
+
+export function InteractiveChart({ data }: InteractiveChartProps) {
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month')
+  
+  const filteredData = data.filter(item => {
+    // Filter logic based on timeRange
+    return true
+  })
+  
+  return (
+    <div className="bg-surface p-4 rounded-lg">
+      <div className="flex gap-2 mb-4">
+        <Button 
+          variant={timeRange === 'week' ? 'default' : 'outline'}
+          onClick={() => setTimeRange('week')}
+        >
+          Week
+        </Button>
+        <Button 
+          variant={timeRange === 'month' ? 'default' : 'outline'}
+          onClick={() => setTimeRange('month')}
+        >
+          Month
+        </Button>
+        <Button 
+          variant={timeRange === 'year' ? 'default' : 'outline'}
+          onClick={() => setTimeRange('year')}
+        >
+          Year
+        </Button>
+      </div>
+      
+      {/* Chart rendering logic */}
+      <div className="h-64 bg-muted rounded">
+        Chart goes here (filtered by {timeRange})
+      </div>
+    </div>
+  )
+}
+```
+
+## Data Fetching Strategy
+
+### Server-Side Data Fetching (Preferred)
+
+Perform data fetching in server functions located in the `server/` folder.
+
+```tsx
+// server/certificate/getRequests.ts
+import { createServerClient } from '@/lib/supabase/server'
+
+export async function getRequests(userId: string) {
+  const supabase = createServerClient()
+  
+  const { data: requests, error } = await supabase
+    .from('certificate_requests')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    throw new Error(`Failed to fetch requests: ${error.message}`)
+  }
+  
+  return requests
+}
+```
+
+### Client-Side Data Fetching (When Necessary)
+
+Use client-side fetching only for:
+- Real-time updates
+- User-triggered data refresh
+- Infinite scrolling
+- Search with debouncing
+
+```tsx
+// hooks/useRequests.ts
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClientClient } from '@/lib/supabase/client'
+
+export function useRequests(userId: string) {
+  const [requests, setRequests] = useState<CertificateRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  const supabase = createClientClient()
+  
+  useEffect(() => {
+    async function fetchRequests() {
+      try {
+        const { data, error } = await supabase
+          .from('certificate_requests')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+        
+        if (error) throw error
+        setRequests(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchRequests()
+  }, [userId, supabase])
+  
+  return { requests, loading, error }
+}
+```
+
+## Performance Optimization
+
+### 1. Minimize Client-Side JavaScript
+
+```tsx
+// ✅ Good - Server component with minimal client interaction
+export default async function ProductPage({ params }: { params: { id: string } }) {
+  const product = await getProduct(params.id)
+  
+  return (
+    <div>
+      <ProductDetails product={product} /> {/* Server component */}
+      <AddToCartButton productId={product.id} /> {/* Small client component */}
+    </div>
+  )
+}
+```
+
+### 2. Use Server Actions for Form Handling
+
+```tsx
+// app/(resident)/profile/_components/profile-form.tsx
+import { updateProfile } from '@/server/user/updateProfile'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+
+export function ProfileForm({ user }: { user: User }) {
+  async function handleSubmit(formData: FormData) {
+    'use server'
+    
+    const updates = {
+      firstName: formData.get('firstName') as string,
+      lastName: formData.get('lastName') as string,
+      address: formData.get('address') as string
+    }
+    
+    await updateProfile(user.id, updates)
+    redirect('/profile?updated=true')
+  }
+  
+  return (
+    <form action={handleSubmit} className="space-y-4">
+      <Input 
+        name="firstName" 
+        defaultValue={user.firstName}
+        className="bg-surface border-muted"
+      />
+      <Input 
+        name="lastName" 
+        defaultValue={user.lastName}
+        className="bg-surface border-muted"
+      />
+      <Input 
+        name="address" 
+        defaultValue={user.address}
+        className="bg-surface border-muted"
+      />
+      <Button type="submit" className="bg-primary">
+        Update Profile
+      </Button>
+    </form>
+  )
+}
+```
+
+### 3. Streaming and Suspense
+
+```tsx
+// app/(admin)/dashboard/page.tsx
+import { Suspense } from 'react'
+import { DashboardStats } from './_components/dashboard-stats'
+import { RecentRequests } from './_components/recent-requests'
+
+export default function DashboardPage() {
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold text-primary mb-6">Dashboard</h1>
+      
+      <Suspense fallback={<div>Loading statistics...</div>}>
+        <DashboardStats />
+      </Suspense>
+      
+      <Suspense fallback={<div>Loading recent requests...</div>}>
+        <RecentRequests />
+      </Suspense>
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+1. **Default to Server Components**: Start with server components and add client components only when needed
+2. **Minimize Client Bundle**: Keep client-side JavaScript to a minimum
+3. **Use Server Actions**: Prefer server actions over client-side API calls for form submissions
+4. **Optimize Data Fetching**: Fetch data on the server whenever possible
+5. **Progressive Enhancement**: Ensure basic functionality works without JavaScript
+6. **Streaming**: Use Suspense and streaming for better perceived performance
+7. **Error Boundaries**: Implement proper error handling for both server and client components
+
+## Common Anti-Patterns to Avoid
+
+1. **Unnecessary Client Components**: Don't use 'use client' unless you need browser APIs or interactivity
+2. **Client-Side Data Fetching**: Avoid fetching data on the client when it can be done on the server
+3. **Large Client Bundles**: Don't include heavy libraries in client components unnecessarily
+4. **Mixed Rendering**: Don't mix server and client rendering patterns inconsistently
+5. **Over-Engineering**: Don't add complexity where simple server-side rendering would suffice

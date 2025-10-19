@@ -1,0 +1,12 @@
+{
+  "title": "Development Guidelines",
+  "pages": [
+    "index",
+    "styling-design-system",
+    "react-architecture",
+    "file-folder-conventions",
+    "logic-organization",
+    "rendering-strategy",
+    "supabase-integration"
+  ]
+}

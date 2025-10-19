@@ -1,0 +1,85 @@
+---
+title: Development Guidelines
+description: Complete development guidelines and conventions for Barangay Konek project
+---
+
+# Development Guidelines for Barangay Konek
+
+This comprehensive guide outlines the development standards, conventions, and best practices for the Barangay Konek project.
+
+## Quick Reference
+
+- [Styling & Design System](/docs/development/styling-design-system)
+- [React Architecture](/docs/development/react-architecture)
+- [File & Folder Conventions](/docs/development/file-folder-conventions)
+- [Logic Organization](/docs/development/logic-organization)
+- [Rendering Strategy](/docs/development/rendering-strategy)
+- [Supabase Integration](/docs/development/supabase-integration)
+
+## Core Principles
+
+### 1. Server-Side First
+Prefer **server-side rendering (SSR)** for all features. Use client components only when necessary for interactivity.
+
+### 2. Consistent Styling
+All styling must use **CSS variables** defined in `globals.css` through Tailwind utility classes.
+
+### 3. Component Reusability
+Always extend **shadcn**'s base UI components to maintain design consistency.
+
+### 4. Clean Architecture
+Follow SOLID principles with clear separation of concerns between UI and business logic.
+
+### 5. Type Safety
+Maintain strict TypeScript usage throughout the codebase.
+
+## Implementation Priority
+
+1. **Server-side rendering and data fetching**
+2. **CSS variables via Tailwind utility classes**
+3. **shadcn component extensions**
+4. **Modular and reusable components**
+5. **Client-side interactivity (only when necessary)**
+
+## Key Rules Summary
+
+1. All files and folders → `kebab-case`
+2. Components → 1 per file
+3. Route-specific components → inside `_components/`
+4. All business logic → inside the `server/` folder
+5. Check for existing logic before creating new ones
+6. Utilities/helpers → `lib/` folder
+7. Use only Tailwind utilities with variable-based classes (`text-primary`, `bg-surface`, etc.)
+8. No inline, internal, or external CSS
+9. Extend shadcn base components for UI
+10. Prioritize SSR over CSR
+
+## Getting Started
+
+Before contributing to the project, please read through all the development guidelines to ensure consistency and maintainability.
+
+### Prerequisites
+
+- Node.js 18+ 
+- pnpm package manager
+- Basic understanding of Next.js 14+ App Router
+- Familiarity with TypeScript
+- Knowledge of Tailwind CSS
+- Understanding of shadcn/ui components
+
+### Development Workflow
+
+1. **Setup**: Clone the repository and install dependencies
+2. **Planning**: Review existing code and architecture before implementing
+3. **Implementation**: Follow the guidelines outlined in this documentation
+4. **Testing**: Ensure all features work as expected
+5. **Review**: Have your code reviewed before merging
+
+## Support
+
+If you have questions about these guidelines or need clarification on any development practices, please:
+
+1. Check the relevant documentation sections
+2. Review existing code examples in the project
+3. Consult with the development team
+4. Create an issue for documentation improvements

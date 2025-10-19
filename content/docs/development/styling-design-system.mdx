@@ -1,0 +1,235 @@
+---
+title: Styling & Design System
+description: Complete guide to styling conventions and design system usage in Barangay Konek
+---
+
+# Styling & Design System
+
+The Barangay Konek project follows a strict styling system based on CSS variables and Tailwind CSS utilities to ensure consistent theming and maintainable code.
+
+## CSS Variables
+
+All styling **must** use CSS variables defined in `globals.css` for consistent theming.
+
+### Usage Rules
+
+- Use CSS variables directly as **Tailwind utility classes** (e.g., `text-primary`, `bg-surface`, `border-muted`)
+- **Do not** use inline styles, internal `<style>` tags, or external CSS files
+- **All styling must be done purely with Tailwind utilities and classes**
+
+### Available CSS Variables
+
+The project uses a comprehensive set of CSS variables for theming:
+
+```css
+/* Example variables from globals.css */
+--primary: /* Primary brand color */
+--surface: /* Surface/background color */
+--muted: /* Muted text and borders */
+--accent: /* Accent color for highlights */
+/* ... and more */
+```
+
+### Correct Usage Examples
+
+```tsx
+// ✅ Correct - Using Tailwind utilities with CSS variables
+<div className="bg-surface text-primary border-muted">
+  <h1 className="text-accent">Title</h1>
+</div>
+
+// ✅ Correct - Responsive design with variables
+<div className="bg-surface md:bg-primary">
+  Content
+</div>
+```
+
+### Incorrect Usage Examples
+
+```tsx
+// ❌ Wrong - Inline styles
+<div style={{ backgroundColor: '#ffffff' }}>
+
+// ❌ Wrong - Internal styles
+<div>
+  <style>{`.custom { color: red; }`}</style>
+</div>
+
+// ❌ Wrong - External CSS imports
+import './custom.css'
+
+// ❌ Wrong - Direct color values
+<div className="bg-white text-black">
+```
+
+## Component Extensions
+
+When creating custom components, always extend **shadcn**'s base UI components to preserve design consistency.
+
+### shadcn Component Usage
+
+```tsx
+// ✅ Correct - Extending shadcn components
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+
+export function CustomCard() {
+  return (
+    <Card className="bg-surface">
+      <CardHeader>
+        <h2 className="text-primary">Title</h2>
+      </CardHeader>
+      <CardContent>
+        <Button variant="default" className="bg-accent">
+          Action
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+### Form Components
+
+Use **shadcn form components** for all forms to maintain consistency:
+
+```tsx
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+
+export function ExampleForm() {
+  return (
+    <Form>
+      <FormField
+        name="email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-primary">Email</FormLabel>
+            <FormControl>
+              <Input 
+                {...field} 
+                className="bg-surface border-muted"
+                placeholder="Enter your email"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <Button type="submit" className="bg-primary">
+        Submit
+      </Button>
+    </Form>
+  )
+}
+```
+
+## Critical Styling Rules
+
+### No Custom Styling Unless Explicitly Requested
+
+- **DO NOT** add any custom styles, Tailwind classes, or visual modifications unless the user explicitly requests it
+- shadcn components already have complete, production-ready styling
+- Only add or modify styles when specifically requested (e.g., "make this blue", "add padding", "style this differently")
+- **Default behavior**: Use shadcn components as-is without any additional styling
+
+### Responsive Design
+
+Use Tailwind's responsive prefixes with CSS variables:
+
+```tsx
+<div className="
+  bg-surface 
+  md:bg-primary 
+  lg:bg-accent
+  text-primary 
+  md:text-surface
+  p-4 
+  md:p-6 
+  lg:p-8
+">
+  Responsive content
+</div>
+```
+
+### Dark Mode Support
+
+CSS variables automatically handle dark mode transitions. No additional configuration needed:
+
+```tsx
+// This automatically works with dark mode
+<div className="bg-surface text-primary border-muted">
+  Content adapts to theme automatically
+</div>
+```
+
+## Best Practices
+
+1. **Consistency**: Always use the defined CSS variables through Tailwind utilities
+2. **Maintainability**: Avoid custom CSS that breaks the design system
+3. **Accessibility**: Ensure proper contrast ratios using the variable system
+4. **Performance**: Leverage Tailwind's purging for optimal bundle size
+5. **Scalability**: Use the component extension pattern for custom UI elements
+
+## Common Patterns
+
+### Layout Components
+
+```tsx
+// Page layout
+<div className="min-h-screen bg-surface">
+  <header className="bg-primary text-surface p-4">
+    Header content
+  </header>
+  <main className="container mx-auto p-6">
+    Main content
+  </main>
+</div>
+```
+
+### Interactive Elements
+
+```tsx
+// Hover and focus states
+<button className="
+  bg-primary 
+  text-surface 
+  hover:bg-accent 
+  focus:ring-2 
+  focus:ring-primary 
+  transition-colors
+">
+  Interactive button
+</button>
+```
+
+### Status Indicators
+
+```tsx
+// Using semantic color variables
+<div className="flex gap-2">
+  <span className="bg-success text-success-foreground px-2 py-1 rounded">
+    Success
+  </span>
+  <span className="bg-destructive text-destructive-foreground px-2 py-1 rounded">
+    Error
+  </span>
+</div>
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Variable not found**: Ensure the CSS variable is defined in `globals.css`
+2. **Inconsistent theming**: Check that you're using variables instead of hardcoded colors
+3. **Component styling conflicts**: Verify you're extending shadcn components properly
+
+### Debugging Tips
+
+1. Use browser dev tools to inspect CSS variable values
+2. Check the compiled Tailwind classes in the browser
+3. Verify that `globals.css` is properly imported
+4. Ensure Tailwind configuration includes all necessary utilities

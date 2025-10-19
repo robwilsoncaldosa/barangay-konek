@@ -1,0 +1,433 @@
+---
+title: File & Folder Conventions
+description: Complete guide to file and folder naming conventions in Barangay Konek project
+---
+
+# File & Folder Conventions
+
+The Barangay Konek project follows strict naming conventions to ensure consistency, maintainability, and clarity across the codebase.
+
+## General Naming Rules
+
+### All Files and Folders: `kebab-case`
+
+All files and folders must use `kebab-case` (lowercase with hyphens).
+
+```
+✅ Correct
+user-profile.tsx
+certificate-request.ts
+barangay-officials.mdx
+user-management/
+
+❌ Incorrect
+UserProfile.tsx
+certificateRequest.ts
+BarangayOfficials.mdx
+userManagement/
+```
+
+### Component Naming
+
+- **File name**: `kebab-case`
+- **Export name**: `PascalCase`
+
+```tsx
+// ✅ Correct
+// File: user-profile.tsx
+export function UserProfile() {
+  return <div>User Profile</div>
+}
+
+// File: certificate-request-form.tsx
+export function CertificateRequestForm() {
+  return <form>Certificate Request Form</form>
+}
+```
+
+### Hook Naming
+
+- **File name**: `camelCase` with `use` prefix
+- **Export name**: `camelCase` with `use` prefix
+
+```tsx
+// ✅ Correct
+// File: useRegistration.ts
+export function useRegistration() {
+  // Hook logic
+}
+
+// File: useMediaQuery.ts
+export function useMediaQuery(query: string) {
+  // Hook logic
+}
+```
+
+### Utility Naming
+
+- **File name**: `camelCase`
+- **Export name**: `camelCase`
+
+```tsx
+// ✅ Correct
+// File: formatDate.ts
+export function formatDate(date: Date): string {
+  // Utility logic
+}
+
+// File: validateEmail.ts
+export function validateEmail(email: string): boolean {
+  // Validation logic
+}
+```
+
+### Constants Naming
+
+- **File name**: `camelCase` or `kebab-case`
+- **Export name**: `UPPER_CASE`
+
+```tsx
+// ✅ Correct
+// File: constants.ts or api-constants.ts
+export const API_BASE_URL = 'https://api.example.com'
+export const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+export const CERTIFICATE_TYPES = {
+  CLEARANCE: 'clearance',
+  RESIDENCY: 'residency',
+  INDIGENCY: 'indigency'
+} as const
+```
+
+## Next.js Reserved Files
+
+Use only these reserved file names inside route folders:
+
+- `page.tsx` - Route page component
+- `layout.tsx` - Route layout component
+- `template.tsx` - Route template component
+- `loading.tsx` - Loading UI component
+- `error.tsx` - Error UI component
+- `not-found.tsx` - 404 UI component
+- `route.tsx` - API route handler
+
+```
+app/
+├── (auth)/
+│   ├── login/
+│   │   ├── page.tsx          ✅ Reserved file
+│   │   └── layout.tsx        ✅ Reserved file
+│   └── register/
+│       ├── page.tsx          ✅ Reserved file
+│       └── loading.tsx       ✅ Reserved file
+```
+
+## Component Organization
+
+### UI Primitives → `components/ui/`
+
+Base shadcn/ui components and primitive UI elements.
+
+```
+components/ui/
+├── button.tsx
+├── input.tsx
+├── card.tsx
+├── dialog.tsx
+└── form.tsx
+```
+
+### Feature Components → `components/features/`
+
+Reusable feature-specific components used across multiple routes.
+
+```
+components/features/
+├── certificate-request/
+│   ├── certificate-form.tsx
+│   ├── certificate-status.tsx
+│   └── certificate-list.tsx
+├── user-management/
+│   ├── user-table.tsx
+│   ├── user-actions.tsx
+│   └── user-profile.tsx
+```
+
+### Route-Specific Components → `_components/`
+
+Components used only within a specific route, placed inside the route folder.
+
+```
+app/
+├── (admin)/
+│   ├── dashboard/
+│   │   ├── page.tsx
+│   │   └── _components/
+│   │       ├── dashboard-stats.tsx
+│   │       ├── recent-requests.tsx
+│   │       └── activity-feed.tsx
+│   └── users/
+│       ├── page.tsx
+│       └── _components/
+│           ├── user-table.tsx
+│           └── user-filters.tsx
+```
+
+### Shared/Global Components → `components/`
+
+Components used globally across the application.
+
+```
+components/
+├── navigation/
+│   ├── main-nav.tsx
+│   ├── user-nav.tsx
+│   └── mobile-nav.tsx
+├── layout/
+│   ├── header.tsx
+│   ├── footer.tsx
+│   └── sidebar.tsx
+```
+
+## Special Route Patterns
+
+### Route Groups: `(group)/`
+
+Groups routes without affecting the URL structure.
+
+```
+app/
+├── (auth)/           # Groups auth routes
+│   ├── login/
+│   └── register/
+├── (admin)/          # Groups admin routes
+│   ├── dashboard/
+│   └── users/
+├── (resident)/       # Groups resident routes
+│   ├── profile/
+│   └── requests/
+```
+
+### Dynamic Routes: `[param]/`
+
+Dynamic route segments.
+
+```
+app/
+├── users/
+│   └── [id]/         # /users/123
+│       └── page.tsx
+├── certificates/
+│   └── [type]/       # /certificates/clearance
+│       └── page.tsx
+```
+
+### Catch-All Routes: `[...param]/`
+
+Catches all route segments.
+
+```
+app/
+├── docs/
+│   └── [...slug]/    # /docs/guide/getting-started
+│       └── page.tsx
+```
+
+### Optional Catch-All: `[[...param]]/`
+
+Optional catch-all routes.
+
+```
+app/
+├── shop/
+│   └── [[...slug]]/  # /shop or /shop/category/item
+│       └── page.tsx
+```
+
+### Private Folders: `_folder/`
+
+Folders ignored by the Next.js router.
+
+```
+app/
+├── dashboard/
+│   ├── page.tsx
+│   ├── _components/  # Private folder - not a route
+│   │   ├── stats.tsx
+│   │   └── chart.tsx
+│   └── _lib/         # Private folder - not a route
+│       └── utils.ts
+```
+
+## Complete Folder Structure Example
+
+```
+barangay-konek/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   │   ├── page.tsx
+│   │   │   └── _components/
+│   │   │       └── login-form.tsx
+│   │   └── register/
+│   │       ├── page.tsx
+│   │       └── _components/
+│   │           └── registration-form.tsx
+│   ├── (admin)/
+│   │   ├── dashboard/
+│   │   │   ├── page.tsx
+│   │   │   ├── loading.tsx
+│   │   │   └── _components/
+│   │   │       ├── dashboard-stats.tsx
+│   │   │       └── recent-activity.tsx
+│   │   └── users/
+│   │       ├── page.tsx
+│   │       ├── [id]/
+│   │       │   └── page.tsx
+│   │       └── _components/
+│   │           ├── user-table.tsx
+│   │           └── user-actions.tsx
+│   ├── (resident)/
+│   │   ├── profile/
+│   │   │   └── page.tsx
+│   │   └── requests/
+│   │       ├── page.tsx
+│   │       └── [id]/
+│   │           └── page.tsx
+│   ├── api/
+│   │   ├── auth/
+│   │   │   └── route.ts
+│   │   └── certificates/
+│   │       └── route.ts
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── ui/
+│   │   ├── button.tsx
+│   │   ├── input.tsx
+│   │   └── card.tsx
+│   ├── features/
+│   │   ├── certificate-management/
+│   │   │   ├── certificate-form.tsx
+│   │   │   └── certificate-status.tsx
+│   │   └── user-management/
+│   │       ├── user-profile.tsx
+│   │       └── user-settings.tsx
+│   └── layout/
+│       ├── header.tsx
+│       ├── footer.tsx
+│       └── navigation.tsx
+├── lib/
+│   ├── utils/
+│   │   ├── formatDate.ts
+│   │   └── validateEmail.ts
+│   ├── constants.ts
+│   └── types.ts
+├── server/
+│   ├── user/
+│   │   ├── getUser.ts
+│   │   └── updateUser.ts
+│   ├── certificate/
+│   │   ├── createRequest.ts
+│   │   └── getRequests.ts
+│   └── auth/
+│       ├── login.ts
+│       └── register.ts
+├── hooks/
+│   ├── useRegistration.ts
+│   ├── useMediaQuery.ts
+│   └── useMobile.ts
+```
+
+## File Naming Best Practices
+
+### Be Descriptive
+
+```
+✅ Good
+certificate-request-form.tsx
+user-profile-settings.tsx
+barangay-official-dashboard.tsx
+
+❌ Bad
+form.tsx
+settings.tsx
+dashboard.tsx
+```
+
+### Use Consistent Patterns
+
+```
+✅ Good - Consistent patterns
+user-profile.tsx
+user-settings.tsx
+user-actions.tsx
+
+certificate-form.tsx
+certificate-status.tsx
+certificate-list.tsx
+
+❌ Bad - Inconsistent patterns
+userProfile.tsx
+user_settings.tsx
+UserActions.tsx
+```
+
+### Avoid Abbreviations
+
+```
+✅ Good
+certificate-management.tsx
+user-registration.tsx
+barangay-officials.tsx
+
+❌ Bad
+cert-mgmt.tsx
+user-reg.tsx
+brgy-officials.tsx
+```
+
+## Import/Export Conventions
+
+### Named Exports for Components
+
+```tsx
+// ✅ Correct - Named export
+export function UserProfile() {
+  return <div>User Profile</div>
+}
+
+// Import
+import { UserProfile } from './user-profile'
+```
+
+### Default Exports for Pages
+
+```tsx
+// ✅ Correct - Default export for pages
+export default function LoginPage() {
+  return <div>Login Page</div>
+}
+
+// Import (Next.js handles this automatically)
+```
+
+### Barrel Exports for Related Components
+
+```tsx
+// components/features/user-management/index.ts
+export { UserProfile } from './user-profile'
+export { UserSettings } from './user-settings'
+export { UserActions } from './user-actions'
+
+// Usage
+import { UserProfile, UserSettings } from '@/components/features/user-management'
+```
+
+## Common Mistakes to Avoid
+
+1. **Mixed case in file names**: `UserProfile.tsx` instead of `user-profile.tsx`
+2. **Inconsistent naming**: Using both `camelCase` and `kebab-case` in the same project
+3. **Generic names**: `component.tsx`, `utils.ts` instead of descriptive names
+4. **Wrong folder structure**: Putting route-specific components in global folders
+5. **Reserved word conflicts**: Using Next.js reserved file names incorrectly

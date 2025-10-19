@@ -1,0 +1,555 @@
+---
+title: Logic Organization
+description: Complete guide to organizing business logic and utilities in Barangay Konek project
+---
+
+# Logic Organization
+
+The Barangay Konek project follows a strict separation of concerns with clear guidelines on where different types of logic should be placed.
+
+## Core Principle: Server-Side Business Logic
+
+**All business logic must be inside the `server/` folder.**
+
+This ensures:
+- Clear separation between UI and business logic
+- Server-side execution for sensitive operations
+- Consistent data handling patterns
+- Better security and performance
+
+## Server Folder Structure
+
+### Entity-Based Organization
+
+Organize logic files by **entity** (e.g., `server/user/`, `server/certificate/`, `server/request/`).
+
+```
+server/
+├── user/
+│   ├── getUser.ts
+│   ├── updateUser.ts
+│   ├── createUser.ts
+│   └── deleteUser.ts
+├── certificate/
+│   ├── createRequest.ts
+│   ├── getRequests.ts
+│   ├── updateRequestStatus.ts
+│   └── generateCertificate.ts
+├── request/
+│   ├── submitRequest.ts
+│   ├── processRequest.ts
+│   └── trackRequest.ts
+├── auth/
+│   ├── login.ts
+│   ├── register.ts
+│   └── validateSession.ts
+└── barangay/
+    ├── getOfficials.ts
+    ├── updateSettings.ts
+    └── getStatistics.ts
+```
+
+### Single Responsibility Rule
+
+Each logic file should focus on **one responsibility only**.
+
+#### ✅ Good Example
+
+```tsx
+// server/user/getUser.ts
+import { createServerClient } from '@/lib/supabase/server'
+
+export async function getUser(userId: string) {
+  const supabase = createServerClient()
+  
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to fetch user: ${error.message}`)
+  }
+  
+  return user
+}
+```
+
+```tsx
+// server/user/updateUser.ts
+import { createServerClient } from '@/lib/supabase/server'
+import { userUpdateSchema } from '@/lib/schemas/user'
+
+export async function updateUser(userId: string, updates: Partial<User>) {
+  const supabase = createServerClient()
+  
+  // Validate input
+  const validatedUpdates = userUpdateSchema.parse(updates)
+  
+  const { data: user, error } = await supabase
+    .from('users')
+    .update(validatedUpdates)
+    .eq('id', userId)
+    .select()
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to update user: ${error.message}`)
+  }
+  
+  return user
+}
+```
+
+#### ❌ Bad Example
+
+```tsx
+// server/user/userOperations.ts - Too many responsibilities
+export async function userOperations() {
+  // Getting user
+  // Updating user
+  // Deleting user
+  // Validating user
+  // Sending notifications
+  // Logging activities
+  // ... too much in one file
+}
+```
+
+### Check for Existing Logic
+
+**Before creating new logic, always check if existing logic already handles it.**
+
+#### Process:
+1. Search the `server/` folder for similar functionality
+2. Check if existing functions can be extended or reused
+3. Only create new files when necessary
+4. Avoid duplicating logic across different files
+
+#### Example Search Process:
+
+```bash
+# Search for existing user-related logic
+find server/ -name "*.ts" | xargs grep -l "getUser\|fetchUser\|retrieveUser"
+
+# Search for certificate-related logic
+find server/ -name "*.ts" | xargs grep -l "certificate\|request"
+```
+
+## Server Logic Examples
+
+### User Management
+
+```tsx
+// server/user/createUser.ts
+import { createServerClient } from '@/lib/supabase/server'
+import { userRegistrationSchema } from '@/lib/schemas/user'
+import { hashPassword } from '@/lib/utils/crypto'
+
+export async function createUser(userData: UserRegistrationData) {
+  const supabase = createServerClient()
+  
+  // Validate input
+  const validatedData = userRegistrationSchema.parse(userData)
+  
+  // Hash password
+  const hashedPassword = await hashPassword(validatedData.password)
+  
+  // Create user
+  const { data: user, error } = await supabase
+    .from('users')
+    .insert({
+      ...validatedData,
+      password: hashedPassword,
+      role: 'resident',
+      status: 'pending_verification',
+      createdAt: new Date().toISOString()
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to create user: ${error.message}`)
+  }
+  
+  // Send verification email (side effect)
+  await sendVerificationEmail(user.email, user.id)
+  
+  return user
+}
+```
+
+### Certificate Management
+
+```tsx
+// server/certificate/createRequest.ts
+import { createServerClient } from '@/lib/supabase/server'
+import { certificateRequestSchema } from '@/lib/schemas/certificate'
+import { generateRequestId } from '@/lib/utils/id-generator'
+
+export async function createCertificateRequest(requestData: CertificateRequestData) {
+  const supabase = createServerClient()
+  
+  // Validate input
+  const validatedData = certificateRequestSchema.parse(requestData)
+  
+  // Generate unique request ID
+  const requestId = generateRequestId()
+  
+  // Create request
+  const { data: request, error } = await supabase
+    .from('certificate_requests')
+    .insert({
+      id: requestId,
+      ...validatedData,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to create certificate request: ${error.message}`)
+  }
+  
+  // Notify officials (side effect)
+  await notifyOfficials(request.id, request.type)
+  
+  // Log activity (side effect)
+  await logActivity('certificate_request_created', {
+    requestId: request.id,
+    userId: request.userId,
+    type: request.type
+  })
+  
+  return request
+}
+```
+
+### Authentication
+
+```tsx
+// server/auth/validateSession.ts
+import { createServerClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
+
+export async function validateSession() {
+  const supabase = createServerClient()
+  
+  const { data: { session }, error } = await supabase.auth.getSession()
+  
+  if (error || !session) {
+    return null
+  }
+  
+  // Get user details
+  const { data: user } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', session.user.id)
+    .single()
+  
+  return {
+    session,
+    user
+  }
+}
+```
+
+## Lib Folder: Utilities and Helpers
+
+The `lib/` folder is reserved for **shared utilities, helpers, and constants** that are not entity-specific business logic.
+
+### Lib Folder Structure
+
+```
+lib/
+├── utils/
+│   ├── formatDate.ts
+│   ├── validateEmail.ts
+│   ├── generateId.ts
+│   └── crypto.ts
+├── schemas/
+│   ├── user.ts
+│   ├── certificate.ts
+│   └── request.ts
+├── supabase/
+│   ├── client.ts
+│   └── server.ts
+├── constants.ts
+├── types.ts
+└── config.ts
+```
+
+### Utility Examples
+
+```tsx
+// lib/utils/formatDate.ts
+export function formatDate(date: Date | string, format: 'short' | 'long' = 'short'): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  
+  if (format === 'long') {
+    return dateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+  
+  return dateObj.toLocaleDateString('en-US')
+}
+
+// lib/utils/validateEmail.ts
+export function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+// lib/utils/generateId.ts
+export function generateRequestId(): string {
+  const timestamp = Date.now().toString(36)
+  const randomStr = Math.random().toString(36).substring(2, 8)
+  return `REQ-${timestamp}-${randomStr}`.toUpperCase()
+}
+```
+
+### Schema Definitions
+
+```tsx
+// lib/schemas/user.ts
+import { z } from 'zod'
+
+export const userRegistrationSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  address: z.string().min(1, 'Address is required'),
+  contactNumber: z.string().min(1, 'Contact number is required')
+})
+
+export const userUpdateSchema = z.object({
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  address: z.string().min(1).optional(),
+  contactNumber: z.string().min(1).optional()
+})
+
+export type UserRegistrationData = z.infer<typeof userRegistrationSchema>
+export type UserUpdateData = z.infer<typeof userUpdateSchema>
+```
+
+### Constants
+
+```tsx
+// lib/constants.ts
+export const CERTIFICATE_TYPES = {
+  CLEARANCE: 'clearance',
+  RESIDENCY: 'residency',
+  INDIGENCY: 'indigency',
+  BUSINESS_PERMIT: 'business_permit',
+  GOOD_MORAL: 'good_moral'
+} as const
+
+export const REQUEST_STATUS = {
+  PENDING: 'pending',
+  UNDER_REVIEW: 'under_review',
+  APPROVED: 'approved',
+  READY: 'ready',
+  COMPLETED: 'completed',
+  REJECTED: 'rejected'
+} as const
+
+export const USER_ROLES = {
+  ADMIN: 'admin',
+  OFFICIAL: 'official',
+  RESIDENT: 'resident'
+} as const
+
+export const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+export const ALLOWED_FILE_TYPES = ['.pdf', '.jpg', '.jpeg', '.png']
+```
+
+## Usage in Components
+
+### Server Components (Recommended)
+
+```tsx
+// app/(resident)/requests/page.tsx
+import { getRequests } from '@/server/certificate/getRequests'
+import { validateSession } from '@/server/auth/validateSession'
+import { RequestsList } from './_components/requests-list'
+
+export default async function RequestsPage() {
+  const session = await validateSession()
+  
+  if (!session) {
+    redirect('/login')
+  }
+  
+  const requests = await getRequests(session.user.id)
+  
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold text-primary mb-6">My Requests</h1>
+      <RequestsList requests={requests} />
+    </div>
+  )
+}
+```
+
+### Server Actions
+
+```tsx
+// app/(resident)/request-certificate/_components/certificate-form.tsx
+'use client'
+
+import { createCertificateRequest } from '@/server/certificate/createRequest'
+import { Button } from '@/components/ui/button'
+
+export function CertificateForm() {
+  async function handleSubmit(formData: FormData) {
+    'use server'
+    
+    const requestData = {
+      type: formData.get('type') as string,
+      purpose: formData.get('purpose') as string,
+      // ... other form data
+    }
+    
+    try {
+      await createCertificateRequest(requestData)
+      redirect('/resident/requests')
+    } catch (error) {
+      // Handle error
+    }
+  }
+  
+  return (
+    <form action={handleSubmit}>
+      {/* Form fields */}
+      <Button type="submit" className="bg-primary">
+        Submit Request
+      </Button>
+    </form>
+  )
+}
+```
+
+## Best Practices
+
+### 1. Consistent Error Handling
+
+```tsx
+// server/user/getUser.ts
+export async function getUser(userId: string) {
+  try {
+    const supabase = createServerClient()
+    
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    
+    if (error) {
+      throw new Error(`Database error: ${error.message}`)
+    }
+    
+    if (!user) {
+      throw new Error('User not found')
+    }
+    
+    return user
+  } catch (error) {
+    console.error('Error in getUser:', error)
+    throw error
+  }
+}
+```
+
+### 2. Input Validation
+
+```tsx
+// server/certificate/createRequest.ts
+import { certificateRequestSchema } from '@/lib/schemas/certificate'
+
+export async function createCertificateRequest(requestData: unknown) {
+  // Always validate input
+  const validatedData = certificateRequestSchema.parse(requestData)
+  
+  // Proceed with validated data
+  // ...
+}
+```
+
+### 3. Type Safety
+
+```tsx
+// lib/types.ts
+export interface User {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  role: 'admin' | 'official' | 'resident'
+  status: 'active' | 'pending' | 'suspended'
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CertificateRequest {
+  id: string
+  userId: string
+  type: string
+  status: string
+  purpose: string
+  createdAt: string
+  updatedAt: string
+}
+```
+
+### 4. Reusable Logic
+
+```tsx
+// lib/utils/database.ts
+export async function withErrorHandling<T>(
+  operation: () => Promise<T>,
+  errorMessage: string
+): Promise<T> {
+  try {
+    return await operation()
+  } catch (error) {
+    console.error(errorMessage, error)
+    throw new Error(errorMessage)
+  }
+}
+
+// Usage in server functions
+export async function getUser(userId: string) {
+  return withErrorHandling(
+    async () => {
+      const supabase = createServerClient()
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      
+      if (error) throw error
+      return data
+    },
+    'Failed to fetch user'
+  )
+}
+```
+
+## Common Anti-Patterns to Avoid
+
+1. **Business logic in components**: Keep UI components focused on presentation
+2. **Duplicate logic**: Always check for existing implementations before creating new ones
+3. **Mixed responsibilities**: Don't combine multiple operations in a single function
+4. **Client-side sensitive operations**: Keep authentication and data validation on the server
+5. **Inconsistent error handling**: Use consistent patterns across all server functions

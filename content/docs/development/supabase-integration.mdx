@@ -1,0 +1,833 @@
+---
+title: Supabase Integration
+description: Complete guide to Supabase integration in Barangay Konek - server-side preference with client-side when needed
+---
+
+# Supabase Integration
+
+The Barangay Konek project uses Supabase as its backend-as-a-service platform, following a **server-side preference** approach for optimal security, performance, and maintainability.
+
+## Core Principle: Server-Side Preference
+
+**Use Supabase from the server as the default approach.**
+
+### Benefits of Server-Side Supabase
+
+1. **Enhanced Security**: Sensitive operations stay on the server
+2. **Better Performance**: Reduced client-side bundle size
+3. **SEO Optimization**: Data available during server-side rendering
+4. **Simplified State Management**: No need for client-side data caching
+5. **Consistent Error Handling**: Centralized error management
+
+## Server-Side Supabase Usage
+
+### Setting Up Server Client
+
+```typescript
+// lib/supabase/server.ts
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export function createServerSupabaseClient() {
+  const cookieStore = cookies()
+  
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!, // Use service role for server
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: any) {
+          cookieStore.set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
+}
+```
+
+### Server-Side Data Operations
+
+#### User Management
+
+```typescript
+// server/user/getUser.ts
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+
+export async function getUser(userId: string) {
+  const supabase = createServerSupabaseClient()
+  
+  const { data: user, error } = await supabase
+    .from('users')
+    .select(`
+      id,
+      email,
+      first_name,
+      last_name,
+      address,
+      phone_number,
+      role,
+      is_verified,
+      created_at,
+      updated_at
+    `)
+    .eq('id', userId)
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to fetch user: ${error.message}`)
+  }
+  
+  return user
+}
+```
+
+```typescript
+// server/user/updateUser.ts
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+
+interface UpdateUserData {
+  firstName?: string
+  lastName?: string
+  address?: string
+  phoneNumber?: string
+}
+
+export async function updateUser(userId: string, updates: UpdateUserData) {
+  const supabase = createServerSupabaseClient()
+  
+  const { data: user, error } = await supabase
+    .from('users')
+    .update({
+      first_name: updates.firstName,
+      last_name: updates.lastName,
+      address: updates.address,
+      phone_number: updates.phoneNumber,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', userId)
+    .select()
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to update user: ${error.message}`)
+  }
+  
+  return user
+}
+```
+
+#### Certificate Management
+
+```typescript
+// server/certificate/getRequests.ts
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+
+export async function getCertificateRequests(userId: string) {
+  const supabase = createServerSupabaseClient()
+  
+  const { data: requests, error } = await supabase
+    .from('certificate_requests')
+    .select(`
+      id,
+      type,
+      status,
+      purpose,
+      notes,
+      created_at,
+      updated_at,
+      processed_by,
+      processed_at,
+      certificate_url
+    `)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    throw new Error(`Failed to fetch certificate requests: ${error.message}`)
+  }
+  
+  return requests
+}
+```
+
+```typescript
+// server/certificate/createRequest.ts
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+
+interface CreateCertificateRequestData {
+  userId: string
+  type: 'clearance' | 'residency' | 'indigency' | 'business_permit'
+  purpose: string
+  notes?: string
+}
+
+export async function createCertificateRequest(data: CreateCertificateRequestData) {
+  const supabase = createServerSupabaseClient()
+  
+  const { data: request, error } = await supabase
+    .from('certificate_requests')
+    .insert({
+      user_id: data.userId,
+      type: data.type,
+      purpose: data.purpose,
+      notes: data.notes,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to create certificate request: ${error.message}`)
+  }
+  
+  return request
+}
+```
+
+#### Authentication
+
+```typescript
+// server/auth/validateSession.ts
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+
+export async function validateSession() {
+  const supabase = createServerSupabaseClient()
+  
+  const { data: { session }, error } = await supabase.auth.getSession()
+  
+  if (error || !session) {
+    redirect('/login')
+  }
+  
+  return session
+}
+```
+
+```typescript
+// server/auth/getUserRole.ts
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+
+export async function getUserRole(userId: string): Promise<'resident' | 'official' | 'admin'> {
+  const supabase = createServerSupabaseClient()
+  
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', userId)
+    .single()
+  
+  if (error) {
+    throw new Error(`Failed to fetch user role: ${error.message}`)
+  }
+  
+  return user.role
+}
+```
+
+### Using Server Functions in Components
+
+```tsx
+// app/(resident)/requests/page.tsx
+import { validateSession } from '@/server/auth/validateSession'
+import { getCertificateRequests } from '@/server/certificate/getRequests'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+
+export default async function RequestsPage() {
+  // Server-side authentication and data fetching
+  const session = await validateSession()
+  const requests = await getCertificateRequests(session.user.id)
+  
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold text-primary mb-6">My Certificate Requests</h1>
+      
+      {requests.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted">No certificate requests found.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {requests.map((request) => (
+            <Card key={request.id} className="bg-surface">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-primary font-semibold">
+                    {request.type.replace('_', ' ').toUpperCase()}
+                  </h3>
+                  <Badge 
+                    className={
+                      request.status === 'approved' ? 'bg-green-500' :
+                      request.status === 'rejected' ? 'bg-red-500' :
+                      'bg-yellow-500'
+                    }
+                  >
+                    {request.status}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted mb-2">Purpose: {request.purpose}</p>
+                <p className="text-muted text-sm">
+                  Requested: {new Date(request.created_at).toLocaleDateString()}
+                </p>
+                {request.notes && (
+                  <p className="text-muted text-sm mt-2">Notes: {request.notes}</p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Server Actions with Supabase
+
+```tsx
+// app/(resident)/request-certificate/page.tsx
+import { validateSession } from '@/server/auth/validateSession'
+import { createCertificateRequest } from '@/server/certificate/createRequest'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { redirect } from 'next/navigation'
+
+export default async function RequestCertificatePage() {
+  const session = await validateSession()
+  
+  async function handleSubmit(formData: FormData) {
+    'use server'
+    
+    const type = formData.get('type') as string
+    const purpose = formData.get('purpose') as string
+    const notes = formData.get('notes') as string
+    
+    try {
+      await createCertificateRequest({
+        userId: session.user.id,
+        type: type as any,
+        purpose,
+        notes: notes || undefined
+      })
+      
+      redirect('/requests?success=true')
+    } catch (error) {
+      redirect('/request-certificate?error=true')
+    }
+  }
+  
+  return (
+    <div className="container mx-auto p-6 max-w-md">
+      <h1 className="text-2xl font-bold text-primary mb-6">Request Certificate</h1>
+      
+      <form action={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-primary mb-2">Certificate Type</label>
+          <select 
+            name="type" 
+            required
+            className="w-full p-2 border border-muted bg-surface rounded"
+          >
+            <option value="">Select certificate type</option>
+            <option value="clearance">Barangay Clearance</option>
+            <option value="residency">Certificate of Residency</option>
+            <option value="indigency">Certificate of Indigency</option>
+            <option value="business_permit">Business Permit</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-primary mb-2">Purpose</label>
+          <Input 
+            name="purpose" 
+            required
+            placeholder="e.g., Job application, School enrollment"
+            className="bg-surface border-muted"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-primary mb-2">Additional Notes (Optional)</label>
+          <Textarea 
+            name="notes"
+            placeholder="Any additional information..."
+            className="bg-surface border-muted"
+          />
+        </div>
+        
+        <Button type="submit" className="w-full bg-primary">
+          Submit Request
+        </Button>
+      </form>
+    </div>
+  )
+}
+```
+
+## Client-Side Supabase Usage
+
+Use client-side Supabase **only when required** for:
+
+- **Authentication state management**
+- **Real-time subscriptions**
+- **Interactive features requiring immediate feedback**
+- **File uploads with progress tracking**
+
+### Setting Up Client
+
+```typescript
+// lib/supabase/client.ts
+import { createBrowserClient } from '@supabase/ssr'
+
+export function createClientSupabaseClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // Use anon key for client
+  )
+}
+```
+
+### Authentication Management
+
+```tsx
+// components/auth/auth-provider.tsx
+'use client'
+
+import { createContext, useContext, useEffect, useState } from 'react'
+import { createClientSupabaseClient } from '@/lib/supabase/client'
+import type { User, Session } from '@supabase/supabase-js'
+
+interface AuthContextType {
+  user: User | null
+  session: Session | null
+  loading: boolean
+}
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  loading: true
+})
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
+  
+  const supabase = createClientSupabaseClient()
+  
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    )
+    
+    return () => subscription.unsubscribe()
+  }, [supabase])
+  
+  return (
+    <AuthContext.Provider value={{ user, session, loading }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export const useAuth = () => useContext(AuthContext)
+```
+
+### Real-time Subscriptions
+
+```tsx
+// components/features/request-status-tracker.tsx
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClientSupabaseClient } from '@/lib/supabase/client'
+import { Badge } from '@/components/ui/badge'
+import { useAuth } from '@/components/auth/auth-provider'
+
+interface RequestStatusTrackerProps {
+  requestId: string
+  initialStatus: string
+}
+
+export function RequestStatusTracker({ 
+  requestId, 
+  initialStatus 
+}: RequestStatusTrackerProps) {
+  const [status, setStatus] = useState(initialStatus)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const { user } = useAuth()
+  const supabase = createClientSupabaseClient()
+  
+  useEffect(() => {
+    if (!user) return
+    
+    // Subscribe to real-time updates for this specific request
+    const subscription = supabase
+      .channel(`request-${requestId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'certificate_requests',
+          filter: `id=eq.${requestId}`
+        },
+        (payload) => {
+          setStatus(payload.new.status)
+          setLastUpdated(new Date())
+        }
+      )
+      .subscribe()
+    
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [requestId, user, supabase])
+  
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-500'
+      case 'processing': return 'bg-blue-500'
+      case 'approved': return 'bg-green-500'
+      case 'rejected': return 'bg-red-500'
+      default: return 'bg-gray-500'
+    }
+  }
+  
+  return (
+    <div className="flex items-center gap-2">
+      <Badge className={getStatusColor(status)}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+      {lastUpdated && (
+        <span className="text-xs text-muted">
+          Updated: {lastUpdated.toLocaleTimeString()}
+        </span>
+      )}
+    </div>
+  )
+}
+```
+
+### Interactive File Upload
+
+```tsx
+// components/features/document-upload.tsx
+'use client'
+
+import { useState } from 'react'
+import { createClientSupabaseClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { useAuth } from '@/components/auth/auth-provider'
+
+interface DocumentUploadProps {
+  requestId: string
+  onUploadComplete: (url: string) => void
+}
+
+export function DocumentUpload({ requestId, onUploadComplete }: DocumentUploadProps) {
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const { user } = useAuth()
+  const supabase = createClientSupabaseClient()
+  
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !user) return
+    
+    setUploading(true)
+    setProgress(0)
+    
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${requestId}-${Date.now()}.${fileExt}`
+      const filePath = `documents/${user.id}/${fileName}`
+      
+      const { data, error } = await supabase.storage
+        .from('certificate-documents')
+        .upload(filePath, file, {
+          onUploadProgress: (progress) => {
+            setProgress((progress.loaded / progress.total) * 100)
+          }
+        })
+      
+      if (error) throw error
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('certificate-documents')
+        .getPublicUrl(filePath)
+      
+      onUploadComplete(publicUrl)
+    } catch (error) {
+      console.error('Upload error:', error)
+    } finally {
+      setUploading(false)
+      setProgress(0)
+    }
+  }
+  
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-primary mb-2">Upload Supporting Document</label>
+        <input
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          onChange={handleFileUpload}
+          disabled={uploading}
+          className="w-full p-2 border border-muted bg-surface rounded"
+        />
+      </div>
+      
+      {uploading && (
+        <div className="space-y-2">
+          <Progress value={progress} className="w-full" />
+          <p className="text-sm text-muted">Uploading... {Math.round(progress)}%</p>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## Security Best Practices
+
+### 1. Row Level Security (RLS)
+
+Enable RLS on all tables and create appropriate policies:
+
+```sql
+-- Enable RLS on certificate_requests table
+ALTER TABLE certificate_requests ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can only see their own requests
+CREATE POLICY "Users can view own requests" ON certificate_requests
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Policy: Users can only create requests for themselves
+CREATE POLICY "Users can create own requests" ON certificate_requests
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Policy: Only officials and admins can update requests
+CREATE POLICY "Officials can update requests" ON certificate_requests
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = auth.uid() 
+      AND role IN ('official', 'admin')
+    )
+  );
+```
+
+### 2. Environment Variables
+
+```bash
+# .env.local
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key # Server-side only
+```
+
+### 3. Type Safety
+
+```typescript
+// lib/types/database.ts
+export interface Database {
+  public: {
+    Tables: {
+      users: {
+        Row: {
+          id: string
+          email: string
+          first_name: string
+          last_name: string
+          address: string
+          phone_number: string
+          role: 'resident' | 'official' | 'admin'
+          is_verified: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          first_name: string
+          last_name: string
+          address: string
+          phone_number: string
+          role?: 'resident' | 'official' | 'admin'
+          is_verified?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          first_name?: string
+          last_name?: string
+          address?: string
+          phone_number?: string
+          role?: 'resident' | 'official' | 'admin'
+          is_verified?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      certificate_requests: {
+        Row: {
+          id: string
+          user_id: string
+          type: 'clearance' | 'residency' | 'indigency' | 'business_permit'
+          status: 'pending' | 'processing' | 'approved' | 'rejected'
+          purpose: string
+          notes: string | null
+          created_at: string
+          updated_at: string
+          processed_by: string | null
+          processed_at: string | null
+          certificate_url: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: 'clearance' | 'residency' | 'indigency' | 'business_permit'
+          status?: 'pending' | 'processing' | 'approved' | 'rejected'
+          purpose: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          processed_by?: string | null
+          processed_at?: string | null
+          certificate_url?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: 'clearance' | 'residency' | 'indigency' | 'business_permit'
+          status?: 'pending' | 'processing' | 'approved' | 'rejected'
+          purpose?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          processed_by?: string | null
+          processed_at?: string | null
+          certificate_url?: string | null
+        }
+      }
+    }
+  }
+}
+```
+
+## Error Handling
+
+### Server-Side Error Handling
+
+```typescript
+// server/certificate/getRequests.ts
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+
+export async function getCertificateRequests(userId: string) {
+  try {
+    const supabase = createServerSupabaseClient()
+    
+    const { data: requests, error } = await supabase
+      .from('certificate_requests')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+    
+    if (error) {
+      console.error('Supabase error:', error)
+      throw new Error(`Database error: ${error.message}`)
+    }
+    
+    return requests
+  } catch (error) {
+    console.error('Failed to fetch certificate requests:', error)
+    throw new Error('Failed to fetch certificate requests')
+  }
+}
+```
+
+### Client-Side Error Handling
+
+```tsx
+// hooks/useSupabaseQuery.ts
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClientSupabaseClient } from '@/lib/supabase/client'
+
+export function useSupabaseQuery<T>(
+  query: (supabase: any) => Promise<{ data: T; error: any }>
+) {
+  const [data, setData] = useState<T | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  const supabase = createClientSupabaseClient()
+  
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const { data, error } = await query(supabase)
+        
+        if (error) {
+          throw new Error(error.message)
+        }
+        
+        setData(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchData()
+  }, [supabase])
+  
+  return { data, loading, error }
+}
+```
+
+## Best Practices Summary
+
+1. **Server-Side First**: Use server-side Supabase for data fetching and mutations
+2. **Client-Side When Needed**: Use client-side only for real-time features and interactivity
+3. **Security**: Implement proper RLS policies and use appropriate API keys
+4. **Type Safety**: Use TypeScript interfaces for database schema
+5. **Error Handling**: Implement comprehensive error handling on both server and client
+6. **Performance**: Minimize client-side bundle by preferring server-side operations
+7. **Authentication**: Manage auth state on the client, but validate on the server
+8. **Real-time**: Use client-side subscriptions for real-time updates when necessary

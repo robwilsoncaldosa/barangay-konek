@@ -1,0 +1,438 @@
+---
+title: React Architecture & SOLID Principles
+description: React architecture guidelines and SOLID principles implementation in Barangay Konek
+---
+
+# React Architecture & SOLID Principles
+
+The Barangay Konek project follows SOLID principles and clean architecture patterns to ensure maintainable, scalable, and testable React components.
+
+## SOLID Principles in React
+
+### Single Responsibility Principle (SRP)
+
+Each component should handle only one clear purpose.
+
+#### ✅ Good Example
+
+```tsx
+// UserProfile.tsx - Only handles user profile display
+export function UserProfile({ user }: { user: User }) {
+  return (
+    <Card className="bg-surface">
+      <CardHeader>
+        <h2 className="text-primary">{user.name}</h2>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted">{user.email}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+// UserActions.tsx - Only handles user actions
+export function UserActions({ userId }: { userId: string }) {
+  return (
+    <div className="flex gap-2">
+      <Button variant="default">Edit</Button>
+      <Button variant="destructive">Delete</Button>
+    </div>
+  )
+}
+```
+
+#### ❌ Bad Example
+
+```tsx
+// UserComponent.tsx - Handles too many responsibilities
+export function UserComponent({ user }: { user: User }) {
+  // Profile display + actions + data fetching + validation
+  const [isEditing, setIsEditing] = useState(false)
+  const [formData, setFormData] = useState(user)
+  
+  // Too many responsibilities in one component
+  return (
+    <div>
+      {/* Profile display */}
+      {/* Edit form */}
+      {/* Action buttons */}
+      {/* Validation messages */}
+    </div>
+  )
+}
+```
+
+### Open/Closed Principle (OCP)
+
+Components should be open for extension but closed for modification.
+
+#### ✅ Good Example
+
+```tsx
+// Base Button component
+interface ButtonProps {
+  variant?: 'default' | 'destructive' | 'outline'
+  size?: 'sm' | 'md' | 'lg'
+  children: React.ReactNode
+  className?: string
+}
+
+export function Button({ variant = 'default', size = 'md', children, className, ...props }: ButtonProps) {
+  return (
+    <button 
+      className={cn(
+        'bg-primary text-surface', // Base styles
+        variant === 'destructive' && 'bg-destructive',
+        variant === 'outline' && 'border border-primary bg-transparent text-primary',
+        size === 'sm' && 'px-2 py-1 text-sm',
+        size === 'lg' && 'px-6 py-3 text-lg',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
+// Extended without modifying the base
+export function SubmitButton(props: Omit<ButtonProps, 'variant'>) {
+  return <Button variant="default" {...props} />
+}
+```
+
+### Liskov Substitution Principle (LSP)
+
+Derived components should be substitutable for their base components.
+
+```tsx
+// Base interface
+interface FormFieldProps {
+  label: string
+  error?: string
+  required?: boolean
+}
+
+// All implementations should be substitutable
+export function TextInput({ label, error, required, ...props }: FormFieldProps & InputProps) {
+  return (
+    <FormItem>
+      <FormLabel className="text-primary">{label} {required && '*'}</FormLabel>
+      <FormControl>
+        <Input className="bg-surface border-muted" {...props} />
+      </FormControl>
+      {error && <FormMessage>{error}</FormMessage>}
+    </FormItem>
+  )
+}
+
+export function TextArea({ label, error, required, ...props }: FormFieldProps & TextareaProps) {
+  return (
+    <FormItem>
+      <FormLabel className="text-primary">{label} {required && '*'}</FormLabel>
+      <FormControl>
+        <Textarea className="bg-surface border-muted" {...props} />
+      </FormControl>
+      {error && <FormMessage>{error}</FormMessage>}
+    </FormItem>
+  )
+}
+```
+
+### Interface Segregation Principle (ISP)
+
+Components should not depend on interfaces they don't use.
+
+#### ✅ Good Example
+
+```tsx
+// Specific interfaces for specific needs
+interface UserDisplayProps {
+  name: string
+  email: string
+}
+
+interface UserActionsProps {
+  userId: string
+  onEdit: () => void
+  onDelete: () => void
+}
+
+// Components only depend on what they need
+export function UserDisplay({ name, email }: UserDisplayProps) {
+  return (
+    <div>
+      <h3 className="text-primary">{name}</h3>
+      <p className="text-muted">{email}</p>
+    </div>
+  )
+}
+
+export function UserActions({ userId, onEdit, onDelete }: UserActionsProps) {
+  return (
+    <div className="flex gap-2">
+      <Button onClick={onEdit}>Edit</Button>
+      <Button variant="destructive" onClick={onDelete}>Delete</Button>
+    </div>
+  )
+}
+```
+
+#### ❌ Bad Example
+
+```tsx
+// Fat interface that components don't fully use
+interface UserProps {
+  id: string
+  name: string
+  email: string
+  avatar: string
+  permissions: string[]
+  settings: UserSettings
+  onEdit: () => void
+  onDelete: () => void
+  onUpdateSettings: (settings: UserSettings) => void
+}
+
+// This component doesn't need all these props
+export function UserDisplay({ name, email }: UserProps) {
+  return (
+    <div>
+      <h3>{name}</h3>
+      <p>{email}</p>
+    </div>
+  )
+}
+```
+
+### Dependency Inversion Principle (DIP)
+
+Depend on abstractions, not concretions.
+
+```tsx
+// Abstract interface
+interface DataService {
+  fetchUser(id: string): Promise<User>
+  updateUser(id: string, data: Partial<User>): Promise<User>
+}
+
+// Component depends on abstraction
+interface UserProfileProps {
+  userId: string
+  dataService: DataService
+}
+
+export function UserProfile({ userId, dataService }: UserProfileProps) {
+  const [user, setUser] = useState<User | null>(null)
+  
+  useEffect(() => {
+    dataService.fetchUser(userId).then(setUser)
+  }, [userId, dataService])
+  
+  if (!user) return <div>Loading...</div>
+  
+  return (
+    <Card className="bg-surface">
+      <CardContent>
+        <h2 className="text-primary">{user.name}</h2>
+        <p className="text-muted">{user.email}</p>
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+## Component Decomposition
+
+Break down complex components into smaller, composable parts.
+
+### Before: Monolithic Component
+
+```tsx
+// ❌ Complex, hard to maintain
+export function CertificateRequestForm() {
+  // 200+ lines of form logic, validation, submission, etc.
+  return (
+    <div>
+      {/* All form fields, validation, actions in one component */}
+    </div>
+  )
+}
+```
+
+### After: Decomposed Components
+
+```tsx
+// ✅ Broken down into focused components
+export function CertificateRequestForm() {
+  return (
+    <Card className="bg-surface">
+      <CardHeader>
+        <CertificateTypeSelector />
+      </CardHeader>
+      <CardContent>
+        <PersonalInfoSection />
+        <DocumentUploadSection />
+        <RequirementsSection />
+      </CardContent>
+      <CardFooter>
+        <FormActions />
+      </CardFooter>
+    </Card>
+  )
+}
+
+// Each section handles its own responsibility
+function PersonalInfoSection() {
+  return (
+    <div className="space-y-4">
+      <TextInput label="Full Name" required />
+      <TextInput label="Address" required />
+      <TextInput label="Contact Number" required />
+    </div>
+  )
+}
+
+function DocumentUploadSection() {
+  return (
+    <div className="space-y-4">
+      <Label className="text-primary">Required Documents</Label>
+      <FileUpload accept=".pdf,.jpg,.png" />
+    </div>
+  )
+}
+```
+
+## Separation of Concerns
+
+Keep UI and business logic clearly separated.
+
+### UI Components (Presentation Layer)
+
+```tsx
+// components/certificate-request-form.tsx
+interface CertificateRequestFormProps {
+  onSubmit: (data: CertificateRequestData) => Promise<void>
+  isLoading: boolean
+  error?: string
+}
+
+export function CertificateRequestForm({ onSubmit, isLoading, error }: CertificateRequestFormProps) {
+  const form = useForm<CertificateRequestData>()
+  
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="certificateType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-primary">Certificate Type</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger className="bg-surface border-muted">
+                    <SelectValue placeholder="Select certificate type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="clearance">Barangay Clearance</SelectItem>
+                  <SelectItem value="residency">Certificate of Residency</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        <Button type="submit" disabled={isLoading} className="bg-primary">
+          {isLoading ? 'Submitting...' : 'Submit Request'}
+        </Button>
+      </form>
+    </Form>
+  )
+}
+```
+
+### Business Logic (Server Layer)
+
+```tsx
+// server/certificate/create-request.ts
+export async function createCertificateRequest(data: CertificateRequestData): Promise<CertificateRequest> {
+  // Validation
+  const validatedData = certificateRequestSchema.parse(data)
+  
+  // Business logic
+  const request = await db.certificateRequest.create({
+    data: {
+      ...validatedData,
+      status: 'pending',
+      createdAt: new Date(),
+    }
+  })
+  
+  // Side effects
+  await sendNotificationToOfficials(request.id)
+  
+  return request
+}
+```
+
+### Page Component (Orchestration Layer)
+
+```tsx
+// app/resident/request-certificate/page.tsx
+export default function RequestCertificatePage() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string>()
+  
+  const handleSubmit = async (data: CertificateRequestData) => {
+    setIsLoading(true)
+    setError(undefined)
+    
+    try {
+      await createCertificateRequest(data)
+      redirect('/resident/requests')
+    } catch (err) {
+      setError('Failed to submit request. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold text-primary mb-6">Request Certificate</h1>
+      <CertificateRequestForm 
+        onSubmit={handleSubmit}
+        isLoading={isLoading}
+        error={error}
+      />
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+1. **Single Responsibility**: Each component should do one thing well
+2. **Composition over Inheritance**: Use composition to build complex UIs
+3. **Props Interface Design**: Keep interfaces focused and minimal
+4. **Error Boundaries**: Implement proper error handling at component boundaries
+5. **Loading States**: Handle loading states gracefully in UI components
+6. **Accessibility**: Ensure components are accessible by default
+7. **Testing**: Write tests for component behavior, not implementation details
+
+## Common Anti-Patterns to Avoid
+
+1. **God Components**: Components that do too many things
+2. **Prop Drilling**: Passing props through many levels unnecessarily
+3. **Tight Coupling**: Components that know too much about each other
+4. **Mixed Concerns**: Mixing UI logic with business logic
+5. **Premature Optimization**: Over-engineering simple components
