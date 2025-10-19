@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import UserTable from "../../app/components/UserTable";
-import Navbar from "../components/Navbar";
-import CertificatePage from "../components/Certificate";
-import Request from "../../app/components/Request";
+import UserTable from "../_components/user-table";
+import Navbar from "../_components/navbar";
+import CertificatePage from "../_components/certificate";
+import Request from "../_components/request";
 
 
 export default function OfficialPage() {
