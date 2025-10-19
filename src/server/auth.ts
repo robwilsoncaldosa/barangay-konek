@@ -5,7 +5,20 @@ import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-export async function loginUser(email: string, password: string) {
+// Types for better type safety
+export interface LoginResult {
+  success: boolean
+  error?: string
+  user?: {
+    id: string
+    first_name: string
+    last_name: string
+    email: string
+    user_type: 'resident' | 'admin' | 'official'
+  }
+}
+
+export async function loginUser(email: string, password: string): Promise<LoginResult> {
   try {
     if (!email || !password) {
       return { success: false, error: 'Email and password are required' }
@@ -64,16 +77,55 @@ export async function loginUser(email: string, password: string) {
     return {
       success: true,
       user: {
-        id: user.id,
+        id: user.id.toString(),
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,
-        user_type: user.user_type,
+        user_type: user.user_type as 'resident' | 'admin' | 'official',
       },
     }
   } catch (error) {
     console.error('Login error:', error)
     return { success: false, error: 'Unexpected error occurred' }
+  }
+}
+
+// Dedicated server action for resident login with proper redirect handling
+export async function loginResidentAction(formData: FormData) {
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+
+  // Server-side validation
+  if (!email || !password) {
+    redirect('/login?error=' + encodeURIComponent('Email and password are required'))
+  }
+
+  // Additional email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    redirect('/login?error=' + encodeURIComponent('Please enter a valid email address'))
+  }
+
+  const result = await loginUser(email, password)
+  
+  if (result.success) {
+    // Redirect based on user type
+    const userType = result.user?.user_type
+    switch (userType) {
+      case 'resident':
+        redirect('/resident')
+        break
+      case 'admin':
+        redirect('/admin')
+        break
+      case 'official':
+        redirect('/official')
+        break
+      default:
+        redirect('/resident') // Default fallback
+    }
+  } else {
+    redirect(`/login?error=${encodeURIComponent(result.error || 'Login failed')}`)
   }
 }
 
