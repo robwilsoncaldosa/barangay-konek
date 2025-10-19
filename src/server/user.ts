@@ -14,7 +14,7 @@ interface CustomAuthUser {
   mbarangayid: number
 }
 
-interface AuthUser {
+export interface AuthUser {
   id: number
   email: string
   user_metadata: {
@@ -188,6 +188,7 @@ export async function updateUser(
 export async function deleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
+    
     const { error } = await supabase
       .from('mUsers')
       .delete()
@@ -200,7 +201,22 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; er
 
     return { success: true }
   } catch (error) {
-    console.error('Unexpected error:', error)
-    return { success: false, error: 'Unexpected error occurred' }
+    console.error('Error deleting user:', error)
+    return { success: false, error: 'Failed to delete user' }
+  }
+}
+
+export async function handleUserRedirect(user: AuthUser | null) {
+  if (!user) return
+
+  const userType = user.user_metadata?.user_type
+
+  switch (userType) {
+    case 'official':
+      return '/official'
+    case 'resident':
+      return '/resident'
+    default:
+      return '/dashboard'
   }
 }
