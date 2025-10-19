@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import bcrypt from 'bcryptjs'
 import type { Database } from '../../database.types'
 
 type User = Database['public']['Tables']['mUsers']['Row']
@@ -97,8 +98,13 @@ export async function createUser(
 ): Promise<{ success: boolean; data?: User; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
+    
+    // Hash the password before storing
+    const hashedPassword = await bcrypt.hash(userData.password, 12)
+    
     const insertData: UserInsert = {
       ...userData,
+      password: hashedPassword,
       sign_up_status: 'pending',
       del_flag: 0,
       created_at: new Date().toISOString(),
@@ -129,9 +135,16 @@ export async function updateUser(
 ): Promise<{ success: boolean; data?: User; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
+    
     const updateData: UserUpdate = {
       ...userData,
       updated_at: new Date().toISOString()
+    }
+
+    // Hash password if it's being updated
+    if (userData.password) {
+      const hashedPassword = await bcrypt.hash(userData.password, 12)
+      updateData.password = hashedPassword
     }
 
     const { data, error } = await supabase
@@ -157,9 +170,13 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; er
   try {
     const supabase = await createSupabaseServerClient()
     
+    // Soft delete by setting del_flag to 1
     const { error } = await supabase
       .from('mUsers')
-      .delete()
+      .update({ 
+        del_flag: 1,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', Number(userId))
 
     if (error) {
@@ -171,6 +188,36 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; er
   } catch (error) {
     console.error('Error deleting user:', error)
     return { success: false, error: 'Failed to delete user' }
+  }
+}
+
+export async function registerUser(
+  userData: Pick<UserInsert, 'first_name' | 'last_name' | 'email' | 'password' | 'birthdate' | 'permanent_address' | 'permanent_barangay' | 'current_address' | 'current_barangay' | 'contact_no' | 'middle_name' | 'mbarangayid' | 'user_type'>
+): Promise<{ success: boolean; data?: User; error?: string }> {
+  try {
+    // Validate required fields
+    if (!userData.first_name || !userData.last_name || !userData.email || !userData.password) {
+      return { success: false, error: 'Missing required fields' }
+    }
+
+    // Check if user already exists
+    const supabase = await createSupabaseServerClient()
+    const { data: existingUser } = await supabase
+      .from('mUsers')
+      .select('id')
+      .eq('email', userData.email)
+      .eq('del_flag', 0) // Only check active users
+      .single()
+
+    if (existingUser) {
+      return { success: false, error: 'User with this email already exists' }
+    }
+
+    // Create the user using existing createUser function (which now hashes password)
+    return await createUser(userData)
+  } catch (error) {
+    console.error('Registration error:', error)
+    return { success: false, error: 'Registration failed' }
   }
 }
 
