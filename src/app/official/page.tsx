@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import UserTable from "../_components/user-table";
+import UserTable from "../admin/_components/user-table";
 import Navbar from "../_components/navbar";
 import CertificatePage from "../_components/certificate";
 import Request from "../_components/request";
@@ -31,5 +31,5 @@ export default function OfficialPage() {
     <UserTable userType="resident" />
     <CertificatePage />
     <Request />
-    </>);
+  </>);
 }
