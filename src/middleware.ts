@@ -11,6 +11,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Development mode bypass - allow access to all pages without authentication
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Development mode: Bypassing authentication middleware')
+    return NextResponse.next()
+  }
+
   // Check if Supabase credentials are configured
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.warn('Supabase credentials not configured. Skipping authentication middleware.')
