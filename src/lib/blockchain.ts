@@ -25,31 +25,6 @@ export async function getContract() {
   return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 }
 
-// --- Add a new certificate request ---
-// export async function addCertificateRequest(
-//   certificateId: number,
-//   residentId: number,
-//   documentType: string,
-//   purpose: string,
-//   priority: string
-// ): Promise<string> {
-//   const contract = await getContract();
-
-//   // Optional: validate inputs
-//   if (!certificateId || !residentId || !documentType || !purpose || !priority) {
-//     throw new Error("Invalid arguments for addCertificateRequest");
-//   }
-
-//   // Call the contract
-//   const tx = await contract.addRequest(certificateId, residentId, documentType, purpose, priority);
-
-//   // Wait for confirmation
-//   const receipt = await tx.wait();
-//   console.log("receipt: ", receipt);
-//   console.log("Transaction successful:", receipt.blockHash);
-
-//   return receipt.transactionHash;
-// }
 export async function addCertificateRequest(
   certificateId: number,
   residentId: number,
@@ -75,8 +50,6 @@ export async function addCertificateRequest(
   return tx.hash;
 }
 
-
-// --- Get all certificate requests ---
 export async function getCertificateRequests() {
   const contract = await getContract();
   const requests = await contract.getRequests();
