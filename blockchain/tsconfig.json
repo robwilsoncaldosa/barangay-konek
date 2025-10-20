@@ -10,5 +10,5 @@
     "outDir": "dist",
     "types": ["node", "hardhat"]   // ⚡ for Hardhat typings
   },
-  "include": ["./scripts", "./test", "./hardhat.config.ts"]
+  "include": ["./scripts", "./test", "hardhat.config.cjs"]
 }

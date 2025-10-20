@@ -1,39 +1,22 @@
-// src/lib/blockchain.ts
 import { ethers } from "ethers";
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
 const CONTRACT_ABI = [
-  "function register(string _name, string _role) public",
-  "function getUser(address _user) public view returns (tuple(string name, string role, address userAddress, uint256 createdAt))",
-  "function registerRequest(uint256 certificateId, address residentAddress, string purpose, string documentType) public"
+  "function addRequest(uint256 certificateId, uint256 residentId, string documentType, string purpose, string priority) public",
+  "function getRequests() public view returns (tuple(uint256 id, uint256 certificateId, uint256 residentId, string documentType, string purpose, string priority, uint256 timestamp)[])"
 ];
 
-// --- Wallet connection ---
+// --- Connect MetaMask ---
 export async function connectWallet(): Promise<string> {
-  if (typeof window === "undefined") throw new Error("No window object");
   if (!window.ethereum) throw new Error("MetaMask not detected");
 
   const provider = new ethers.BrowserProvider(window.ethereum);
   const accounts = await provider.send("eth_requestAccounts", []);
-  return accounts[0]; // user's wallet address
-}
-
-// --- Register a user ---
-export async function registerUserOnChain(name: string, role: string): Promise<string> {
-  if (!window.ethereum) throw new Error("MetaMask not detected");
-
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const signer = await provider.getSigner();
-  const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-
-  const tx = await contract.register(name, role);
-  await tx.wait();
-  return tx.hash;
+  return accounts[0];
 }
 
 // --- Get contract instance ---
 export async function getContract() {
-  if (typeof window === "undefined") throw new Error("No window object");
   if (!window.ethereum) throw new Error("MetaMask not detected");
 
   const provider = new ethers.BrowserProvider(window.ethereum);
@@ -42,22 +25,60 @@ export async function getContract() {
   return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 }
 
-// --- Register a request ---
-export async function registerRequestOnChain(
+// --- Add a new certificate request ---
+// export async function addCertificateRequest(
+//   certificateId: number,
+//   residentId: number,
+//   documentType: string,
+//   purpose: string,
+//   priority: string
+// ): Promise<string> {
+//   const contract = await getContract();
+
+//   // Optional: validate inputs
+//   if (!certificateId || !residentId || !documentType || !purpose || !priority) {
+//     throw new Error("Invalid arguments for addCertificateRequest");
+//   }
+
+//   // Call the contract
+//   const tx = await contract.addRequest(certificateId, residentId, documentType, purpose, priority);
+
+//   // Wait for confirmation
+//   const receipt = await tx.wait();
+//   console.log("receipt: ", receipt);
+//   console.log("Transaction successful:", receipt.blockHash);
+
+//   return receipt.transactionHash;
+// }
+export async function addCertificateRequest(
   certificateId: number,
-  residentAddress: string,
+  residentId: number,
+  documentType: string,
   purpose: string,
-  documentType: string
+  priority: string
 ): Promise<string> {
-  if (!window.ethereum) throw new Error("MetaMask not installed");
+  const contract = await getContract();
 
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const signer = await provider.getSigner();
-  const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+  if (!certificateId || !residentId || !documentType || !purpose || !priority) {
+    throw new Error("Invalid arguments for addCertificateRequest");
+  }
 
-  const tx = await contract.registerRequest(certificateId, residentAddress, purpose, documentType);
-  await tx.wait();
+  // Call the contract
+  const tx = await contract.addRequest(certificateId, residentId, documentType, purpose, priority);
 
-  console.log("Request registered on chain:", tx.hash);
+  // Wait for confirmation
+  const receipt = await tx.wait();
+  console.log("receipt: ", receipt);
+  console.log("Transaction successful, blockHash:", receipt.blockHash);
+
+  // **tx.hash is the transaction hash you want**
   return tx.hash;
+}
+
+
+// --- Get all certificate requests ---
+export async function getCertificateRequests() {
+  const contract = await getContract();
+  const requests = await contract.getRequests();
+  return requests;
 }
