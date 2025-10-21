@@ -1,10 +1,30 @@
-# 🏛️ Barangay Konek
+<div align="center">
 
-**Barangay Konek** is an open-source digital governance platform that bridges local governance and technology through **Next.js**, **Supabase**, and **Blockchain**.  It empowers barangays and their residents with a secure, transparent, and decentralized system for document requests, record management, and blockchain-verified certificates.
+<h3>Barangay Konek</h3>
 
-🚀 Designed for transparency. Built for communities. Secured by blockchain.
+<p>Designed for transparency. Built for communities. Secured by blockchain.</p>
+
+<p>
+  <a href="https://github.com/othneildrew/Best-README-Template"><strong>Explore the docs »</strong></a>
+  <br />
+  <a href="https://github.com/othneildrew/Best-README-Template">View Demo</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/othneildrew/Best-README-Template/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/othneildrew/Best-README-Template/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+</p>
+
+<p>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <img src="https://img.shields.io/badge/status-active-success.svg" alt="Status">
+</p>
+
+</div>
 
 ---
+
+**Barangay Konek** is an open-source digital governance platform that bridges local governance and technology through **Next.js**, **Supabase**, and **Blockchain**.  
+It empowers barangays and their residents with a secure, transparent, and decentralized system for document requests, record management, and blockchain-verified certificates.
 
 ## 📖 Table of Contents
 
@@ -70,27 +90,41 @@ Barangay Konek follows a **Server-Side First Architecture**, ensuring secure dat
 
 ```
 
-app/
-├── (resident)/
-│   ├── requests/
-│   ├── certificates/
-│   └── dashboard/
-├── (official)/
-│   ├── requests/
-│   ├── certificates/
-│   └── dashboard/
-├── api/
-│   └── blockchain/
-server/
-├── auth/
-├── certificate/
-├── request/
-├── user/
-lib/
-├── utils/
-├── schemas/
-├── supabase/
-└── constants.ts
+BARANGAY-KONEK/
+├── .next/
+├── .source/
+├── blockchain/
+├── content/
+│   └── docs/
+│       ├── api/
+│       ├── blockchain/
+│       ├── development/
+│       ├── features/
+│       └── user-guides/
+├── node_modules/
+├── public/
+├── src/
+│   └── app/
+│       ├── (resident)/
+│       │   ├── requests/
+│       │   ├── certificates/
+│       │   └── dashboard/
+│       ├── (official)/
+│       │   ├── requests/
+│       │   ├── certificates/
+│       │   └── dashboard/
+│       └── api/
+│           └── blockchain/
+├── server/
+│   ├── auth/
+│   ├── certificate/
+│   ├── request/
+│   └── user/
+└── lib/
+    ├── utils/
+    ├── schemas/
+    ├── supabase/
+    └── constants/
 
 ```
 
