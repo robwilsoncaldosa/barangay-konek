@@ -1,11 +1,14 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { loginUser } from "@/server/auth"; // import from your server-side file
 
-const AdminLogin = () => {
+export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -17,36 +20,36 @@ const AdminLogin = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("Logging in...");
+    setLoading(true);
+    setMessage("🔐 Logging in...");
 
-    const res = await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "login",
-        email: email,
-        password: password,
-      })
-    });
+    try {
+      const res = await loginUser(email, password);
 
+      console.log('Test', res);
 
-    const data = await res.json();
+      if (!res.success) {
+        setMessage("Something went wrong!");
+        setLoading(false);
+        return;
+      }
 
-    console.log("data: ", data);
-    if (!res.ok) {
-      setMessage(`❌ ${data.message}`);
-      return;
+      localStorage.setItem("user", JSON.stringify(res.user));
+      setMessage("✅ Login successful! Redirecting...");
+      router.push("/admin");
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Unexpected error occurred.");
+    } finally {
+      setLoading(false);
     }
-
-    localStorage.setItem("user", JSON.stringify(data.user));
-    router.push("/admin");
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-blue-50">
-      <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-center mb-6 text-blue-700">
-          Admin Login
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-blue-200">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border border-blue-100">
+        <h1 className="text-3xl font-bold text-center mb-6 text-blue-700">
+          Super Admin Login
         </h1>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -56,7 +59,7 @@ const AdminLogin = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
             placeholder="Email"
-            className="w-full px-3 py-2 border rounded"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             type="password"
@@ -64,20 +67,35 @@ const AdminLogin = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
             placeholder="Password"
-            className="w-full px-3 py-2 border rounded"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            disabled={loading}
+            className={`w-full py-2 rounded-lg text-white font-medium transition ${
+              loading
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
           >
-            Log In
+            {loading ? "Logging in..." : "Log In"}
           </button>
         </form>
 
-        {message && <p className="mt-4 text-center text-gray-600">{message}</p>}
+        {message && (
+          <p
+            className={`mt-4 text-center text-sm ${
+              message.startsWith("❌")
+                ? "text-red-600"
+                : message.startsWith("✅")
+                ? "text-green-600"
+                : "text-gray-700"
+            }`}
+          >
+            {message}
+          </p>
+        )}
       </div>
     </div>
   );
-};
-
-export default AdminLogin;
+}
