@@ -1,6 +1,6 @@
 <div align="center">
 
-<h3>Barangay Konek</h3>
+<h1>Barangay Konek</h1>
 
 <p>Designed for transparency. Built for communities. Secured by blockchain.</p>
 
