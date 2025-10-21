@@ -1,97 +1,245 @@
+# 🏛️ Barangay Konek
+
+**Barangay Konek** is an open-source digital governance platform that bridges local governance and technology through **Next.js**, **Supabase**, and **Blockchain**.  It empowers barangays and their residents with a secure, transparent, and decentralized system for document requests, record management, and blockchain-verified certificates.
+
+🚀 Designed for transparency. Built for communities. Secured by blockchain.
+
+---
+
+## 📖 Table of Contents
+
+- [Overview](#-overview)
+- [Core Features](#-core-features)
+- [Tech Stack](#-tech-stack)
+- [Architecture Overview](#-architecture-overview)
+- [Development Guidelines](#-development-guidelines)
+- [Project Structure](#-project-structure)
+- [Setup & Installation](#-setup--installation)
+- [Environment Variables](#-environment-variables)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Community](#-community)
+- [Acknowledgements](#-acknowledgements)
+
+---
+
+## 🌍 Overview
+
+Barangay Konek aims to **digitize barangay operations** by enabling residents to submit, track, and verify their document requests online — while empowering barangay officials to manage approvals efficiently.  
+All issued certificates are **blockchain-verified**, ensuring authenticity and transparency across the process.
+
+### 🎯 Core Objectives
+- Digitize barangay processes such as clearance, residency, and indigency certificates  
+- Provide residents with real-time request tracking  
+- Enable blockchain-secured certificate issuance  
+- Simplify records management for officials  
+- Promote transparency and accountability through open-source technology  
+
+---
+
+## ⚙️ Core Features
+
+| Category | Description |
+|-----------|-------------|
+| 🧾 **Resident Portal** | Request, track, and download barangay certificates |
+| 🧑‍💼 **Official Dashboard** | Manage, approve, and issue requests digitally |
+| 🔗 **Blockchain Integration** | Verifiable certificates stored on-chain |
+| 🔒 **Secure Authentication** | Supabase Auth with role-based access |
+| 🧠 **Server-Side First** | All sensitive logic handled securely on the server |
+| 🎨 **Unified Design System** | Consistent UI via Tailwind CSS + shadcn/ui |
+
+---
+
+## 🧩 Tech Stack
+
+| Layer | Technology |
+|-------|-------------|
+| **Framework** | [Next.js 14+ (App Router)](https://nextjs.org) |
+| **UI System** | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) |
+| **Backend & Database** | [Supabase](https://supabase.com) |
+| **Blockchain Layer** | [Ethereum / Lisk Testnet](https://lisk.com) |
+| **Language** | TypeScript |
+| **Auth System** | Supabase Auth |
+| **Package Manager** | pnpm |
+
+---
+
+## 🏗️ Architecture Overview
+
+Barangay Konek follows a **Server-Side First Architecture**, ensuring secure data handling and a clear separation between presentation and business logic.
+
 ```
-╦╔═╔═╗╔╗╔╔═╗╦╔═  ╔╗ ╔═╗╦═╗╔═╗╔╗╔╔═╗╔═╗╦ ╦
-╠╩╗║ ║║║║║╣ ╠╩╗  ╠╩╗╠═╣╠╦╝╠═╣║║║║ ╦╠═╣╚╦╝
-╩ ╩╚═╝╝╚╝╚═╝╩ ╩  ╚═╝╩ ╩╩╚═╩ ╩╝╚╝╚═╝╩ ╩ ╩ 
+
+app/
+├── (resident)/
+│   ├── requests/
+│   ├── certificates/
+│   └── dashboard/
+├── (official)/
+│   ├── requests/
+│   ├── certificates/
+│   └── dashboard/
+├── api/
+│   └── blockchain/
+server/
+├── auth/
+├── certificate/
+├── request/
+├── user/
+lib/
+├── utils/
+├── schemas/
+├── supabase/
+└── constants.ts
+
 ```
 
-<div align="center">
+### 💡 Design Principles
 
-### 🌟 Ang Kaugmaon sa Barangay, Karon Na 🌟
-
-*Gipadali. Gipasayon. Gipaspas.*
-
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-active-success.svg)]()
-
-[🚀 Unsa Ni](#-unsa-ang-barangay-konek) • [⚡ Features](#-unsa-among-gibuhat) • [🎯 Mission](#-ngano-importante-ni)
-
-</div>
+1. **Server-Side First** — all sensitive logic runs on the server  
+2. **Single Responsibility** — one purpose per file  
+3. **Strict Type Safety** — every function and schema validated with TypeScript + Zod  
+4. **No Inline Styles** — design system only via Tailwind variables  
+5. **Reusable UI Components** — built from shadcn/ui foundations  
 
 ---
 
-## 🚀 Unsa ang Barangay Konek?
+## 🧱 Development Guidelines
 
-**Bag-ong paagi sa pagdumala sa barangay.** Walay linya. Walay hassle. Walay corruption.
+To ensure maintainability and consistency across contributors, Barangay Konek enforces the following conventions:
 
-Usa ka digital platform nga naggamit ug **AI ug Blockchain** para sa mas transparent, mas efficient, ug mas modernong barangay governance.
+1. **Server logic →** inside `/server`  
+2. **UI logic →** inside `/app/(role)/_components`  
+3. **Shared utilities →** inside `/lib`  
+4. **Always check existing logic** before creating new ones  
+5. **Use Tailwind variables** like `text-primary`, `bg-surface`, etc.  
+6. **No inline, external, or internal CSS**  
+7. **Prefer SSR (Server-Side Rendering)** over CSR  
 
----
-
-## ⚡ Unsa Among Gibuhat
-
-### 🏠 **Serbisyo Diretso sa Imong Kamot**
-Certificate? Clearance? Permit? Request lang, kuha dayon.
-- 📱 Mobile-first platform—gamit lang sa phone
-- ⚡ Minutes, dili days
-- 🔔 Real-time notifications
-
-### 🔗 **Blockchain: Walay Daya, Walay Tabon**
-Every transaction recorded. Every peso tracked. Complete transparency.
-- 🔐 Tamper-proof records
-- 👁️ Public audit trail
-- 💰 Budget tracking nga makita sa tanan
-
-### 🤖 **AI: Mas Smart, Mas Paspas**
-Technology nga motabang, dili mosamok.
-- 🧠 Auto-routing of requests
-- 📊 Data-driven decision making
-- 🗣️ Bisaya language support
-
-### 🛍️ **Digital Marketplace para sa Lokal**
-Empowering negosyante ug entrepreneurs sa barangay.
-- 🏪 Local products, online reach
-- 💳 Digital payments made easy
-- 📈 Grow your negosyo digitally
+📘 For full details, see:  
+[`docs/development-guidelines.md`](./docs/development-guidelines.md)
 
 ---
 
-## 🎯 Ngano Importante Ni
+## 📂 Project Structure
 
-**Ang barangay mao ang pundasyon sa atong komunidad.**
+```
 
-But outdated systems create barriers. Lost documents. Long queues. Lack of transparency. Corruption opportunities.
+barangay-konek/
+├── app/                # Next.js App Router pages
+├── server/             # Supabase & blockchain logic
+├── lib/                # Shared utilities and schemas
+├── components/         # Shared UI components
+├── public/             # Static assets
+├── docs/               # Developer documentation
+├── .env.local.example  # Sample environment file
+└── README.md
 
-**Konek Barangay changes everything:**
-
-✅ **Para sa Residente**: Service anytime, anywhere  
-✅ **Para sa Officials**: Zero paper, zero hassle  
-✅ **Para sa Negosyante**: Bag-ong opportunities  
-✅ **Para sa Komunidad**: Trust through transparency  
-
----
-
-## 💪 Ang Atong Vision
-
-**Every barangay empowered. Every Bisaya connected. Every service transparent.**
-
-Dili lang technology—kini mahitungod sa paghatag og equal opportunity ug better governance sa matag Bisaya. From Cebu to Mindanao, from Bohol to Leyte.
+````
 
 ---
 
-## 🤝 Apil Diri
+## 🧰 Setup & Installation
 
-Tabang sa pagtukod sa kaugmaon sa atong mga barangay:
+### 1️⃣ Clone Repository
 
-💻 **Contribute** • 🐛 **Report Issues** • 💡 **Share Ideas** • 🌟 **Spread the Word**
+```bash
+git clone https://github.com/barangay-konek/barangay-konek.git
+cd barangay-konek
+````
+
+### 2️⃣ Install Dependencies
+
+```bash
+pnpm install
+```
+
+### 3️⃣ Setup Environment
+
+Copy `.env.local.example` → `.env.local` and update the credentials.
+
+### 4️⃣ Run Development Server
+
+```bash
+pnpm dev
+```
+
+### 5️⃣ Build for Production
+
+```bash
+pnpm build && pnpm start
+```
 
 ---
 
-<div align="center">
+## 🔑 Environment Variables
 
-**Built with ❤️ for Bisaya communities**
+| Variable                          | Description                                  |
+| --------------------------------- | -------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`        | Supabase project URL                         |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`   | Supabase public anon key                     |
+| `SUPABASE_SERVICE_ROLE_KEY`       | Supabase admin service key                   |
+| `NEXT_PUBLIC_SEPOLIA_RPC_URL`     | Blockchain RPC endpoint                      |
+| `NEXT_PUBLIC_SEPOLIA_PRIVATE_KEY` | Private key for blockchain wallet            |
+| `NEXT_PUBLIC_BLOCKCHAIN_CONTRACT` | Smart contract address                       |
+| `NEXT_PUBLIC_SITE_URL`            | Base site URL (e.g. localhost or production) |
 
-*Padayon! Para sa kaugmaon sa atong barangay!*
+⚠️ **Note:** Never commit `.env.local` files to version control.
 
-🌐 [konekbarangay.ph](https://konekbarangay.ph) • 📧 hello@konekbarangay.ph
+---
 
-</div>
+## 🤝 Contributing
+
+Contributions are welcome! Help improve Barangay Konek by fixing bugs, improving documentation, or building new features.
+
+### Steps to Contribute
+
+1. **Fork** the repository
+2. **Create a new branch**
+
+   ```bash
+   git checkout -b feature/your-feature
+   ```
+3. **Commit your changes**
+
+   ```bash
+   git commit -m "feat: add blockchain verification for certificates"
+   ```
+4. **Push to your fork**
+
+   ```bash
+   git push origin feature/your-feature
+   ```
+5. **Submit a Pull Request**
+
+For details, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+---
+
+## 💬 Community
+
+* 💻 GitHub Issues: [Report bugs or request features](https://github.com/barangay-konek/barangay-konek/issues)
+* 🧠 Discussions: [Join the conversation](https://github.com/barangay-konek/barangay-konek/discussions)
+* 🌐 Website: Coming Soon
+
+---
+
+## 🙏 Acknowledgements
+
+* Built with ❤️ by open-source contributors
+* Powered by [Next.js](https://nextjs.org), [Supabase](https://supabase.com), and [Lisk Blockchain](https://lisk.com)
+* Inspired by the vision of transparent and efficient local governance
+
+---
+
+## 🚀 Roadmap
+
+* ✅ Blockchain integration for certificate verification
+* ✅ Resident & official dashboards
+* ✅ Role-based access system
+* 🔜 Barangay analytics and statistics
+* 🔜 Mobile responsiveness and offline support
+* 🔜 Barangay-to-city digital linkage
+
+---
+### 💡 “Empowering barangays through technology — one certificate at a time.”
