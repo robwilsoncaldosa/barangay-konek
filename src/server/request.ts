@@ -15,6 +15,13 @@ interface RequestWithUser extends Request {
   resident_email: string
 }
 
+interface CompleteRequestParams {
+  requestId: string
+  email: string
+  file: File
+  tx_hash: string
+}
+
 export async function getRequests(filters?: {
   resident_id?: string
   status?: Pick<Request, 'status'>['status']
@@ -130,8 +137,8 @@ export async function createRequest(
 }
 
 export async function updateRequestStatus(
-  requestId: string, 
-  status: string, 
+  requestId: string,
+  status: string,
   documentType?: string
 ): Promise<{ success: boolean; data?: Request; error?: string }> {
   try {
@@ -249,11 +256,11 @@ export async function completeRequestWithDocument(
 export async function deleteRequest(requestId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
-    
+
     // Soft delete by setting del_flag to 1
     const { error } = await supabase
       .from('mRequest')
-      .update({ 
+      .update({
         del_flag: 1,
         updated_at: new Date().toISOString()
       })
@@ -268,5 +275,93 @@ export async function deleteRequest(requestId: string): Promise<{ success: boole
   } catch (error) {
     console.error('Unexpected error:', error)
     return { success: false, error: 'Unexpected error occurred' }
+  }
+}
+
+export async function completeRequestWithFile({ requestId, email, file, tx_hash }: CompleteRequestParams) {
+  try {
+    // Save the file
+    const uploadDir = path.join(process.cwd(), 'uploads')
+    fs.mkdirSync(uploadDir, { recursive: true })
+    const filePath = path.join(uploadDir, `${Date.now()}-${file.name}`)
+
+    // Read file as arrayBuffer and write to disk
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    fs.writeFileSync(filePath, buffer)
+
+    // Send email
+    const transporter = nodemailer.createTransport({
+      host: process.env.NEXT_PUBLIC_SMTP_HOST,
+      port: Number(process.env.NEXT_PUBLIC_SMTP_PORT),
+      auth: {
+        user: process.env.NEXT_PUBLIC_SMTP_USER,
+        pass: process.env.NEXT_PUBLIC_SMTP_PASS,
+      },
+    })
+
+    await transporter.sendMail({
+      from: process.env.NEXT_PUBLIC_SMTP_USER ?? undefined,
+      to: email,
+      subject: 'Your Requested Document',
+      html: `
+       <div style="font-family: Arial, sans-serif; background-color: #f3f6f9; padding: 24px;">
+          <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+            <div style="background-color: #2563eb; color: #ffffff; padding: 16px 24px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+              <h2 style="margin: 0; font-size: 20px;">Barangay Konek</h2>
+            </div>
+            <div style="padding: 24px; background: #ffffff;">
+              <h3 style="margin: 0 0 12px; color: #1f2937;">Your Requested Document is Ready</h3>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                Dear Resident,
+              </p>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                Thank you for using our service. Please find the attached document you requested.
+              </p>
+              ${tx_hash
+          ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                      Blockchain transaction: <a href="https://sepolia-blockscout.lisk.com/tx/${tx_hash}">${tx_hash}</a>
+                     </p>`
+          : ""
+        }
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                If you have any concerns or need additional assistance, feel free to reply to this email.
+              </p>
+              <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
+                Best regards,<br/>
+                <strong>Barangay Konek Team</strong>
+              </p>
+            </div>
+          </div>
+          <div style="text-align: center; padding: 16px; font-size: 12px; color: #777;">
+            &copy; ${new Date().getFullYear()} Barangay Konek. All rights reserved.
+          </div>
+        </div>
+      `,
+      attachments: [{ filename: file.name, path: filePath }],
+    })
+
+    // Update request status
+    const supabase = await createSupabaseServerClient()
+    const { data, error } = await supabase
+      .from('mRequest')
+      .update({
+        status: 'completed',
+        document_type: file.name,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', Number(requestId))
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating request:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data }
+  } catch (err: any) {
+    console.error('Unexpected error in completeRequestWithFile:', err)
+    return { success: false, error: err.message || 'Unexpected error occurred' }
   }
 }

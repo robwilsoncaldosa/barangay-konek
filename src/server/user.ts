@@ -3,6 +3,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import bcrypt from 'bcryptjs'
 import type { Database } from '../../database.types'
+import nodemailer from "nodemailer";
 
 type User = Database['public']['Tables']['mUsers']['Row']
 type UserInsert = Database['public']['Tables']['mUsers']['Insert']
@@ -19,37 +20,40 @@ export interface AuthUser {
   }
 }
 
-export async function getUser(): Promise<AuthUser | null> {
+export async function getUser(): Promise<{ success: boolean; data?: any; message?: string }> {
   try {
-    const { cookies } = await import('next/headers')
-    const cookieStore = await cookies()
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
 
-    // Check for custom auth cookie
-    const customAuthCookie = cookieStore.get('custom-auth-user')
+    const customAuthCookie = cookieStore.get("custom-auth-user");
 
-    if (customAuthCookie) {
-      try {
-        const userData: CustomAuthUser = JSON.parse(customAuthCookie.value)
-        return {
+    if (!customAuthCookie) {
+      return { success: false, message: "No authentication cookie found." };
+    }
+
+    try {
+      const userData: CustomAuthUser = JSON.parse(customAuthCookie.value);
+
+      return {
+        success: true,
+        data: {
           id: userData.id,
           email: userData.email,
           user_metadata: {
             user_type: userData.user_type,
-            mbarangayid: userData.mbarangayid
-          }
-        }
-      } catch (parseError) {
-        console.error('Error parsing custom auth cookie:', parseError)
-      }
+            mbarangayid: userData.mbarangayid,
+          },
+        },
+      };
+    } catch {
+      throw new Error("Invalid or corrupted authentication cookie.");
     }
-
-    // If no custom auth, return null (user not authenticated)
-    return null
-  } catch (error) {
-    console.error('Unexpected error:', error)
-    return null
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unexpected error";
+    return { success: false, message };
   }
 }
+
 
 export async function getUserById(userId: number): Promise<User | null> {
   try {
@@ -94,75 +98,219 @@ export async function getUsersByType(userType: 'official' | 'resident' = 'offici
 }
 
 export async function createUser(
-  userData: Pick<UserInsert, 'first_name' | 'last_name' | 'email' | 'password' | 'birthdate' | 'permanent_address' | 'permanent_barangay' | 'current_address' | 'current_barangay' | 'contact_no' | 'middle_name' | 'mbarangayid' | 'user_type'>
+  userData: Pick<
+    UserInsert,
+    | "first_name"
+    | "last_name"
+    | "email"
+    | "password"
+    | "birthdate"
+    | "permanent_address"
+    | "permanent_barangay"
+    | "current_address"
+    | "current_barangay"
+    | "contact_no"
+    | "middle_name"
+    | "mbarangayid"
+    | "user_type"
+  >
 ): Promise<{ success: boolean; data?: User; error?: string }> {
   try {
-    const supabase = await createSupabaseServerClient()
-    
-    // Hash the password before storing
-    const hashedPassword = await bcrypt.hash(userData.password, 12)
-    
+    const supabase = await createSupabaseServerClient();
+
+    // Hash password before storing
+    const hashedPassword = await bcrypt.hash(userData.password, 12);
+
     const insertData: UserInsert = {
       ...userData,
       password: hashedPassword,
-      sign_up_status: 'pending',
+      sign_up_status: "pending",
       del_flag: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }
+    };
 
     const { data, error } = await supabase
-      .from('mUsers')
+      .from("mUsers")
       .insert([insertData])
       .select()
-      .single()
+      .single();
 
     if (error) {
-      console.error('Error creating user:', error)
-      return { success: false, error: error.message }
+      console.error("Error creating user:", error);
+      return { success: false, error: error.message };
     }
 
-    return { success: true, data }
+    const transporter = nodemailer.createTransport({
+      host: process.env.NEXT_PUBLIC_SMTP_HOST,
+      port: Number(process.env.NEXT_PUBLIC_SMTP_PORT),
+      auth: {
+        user: process.env.NEXT_PUBLIC_SMTP_USER,
+        pass: process.env.NEXT_PUBLIC_SMTP_PASS,
+      },
+    });
+
+    const subject = "Welcome to Barangay Konek!";
+    const html = `
+      <div style="font-family: Arial, sans-serif; background-color: #f3f6f9; padding: 24px;">
+        <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+          <div style="background-color: #2563eb; color: #ffffff; padding: 16px 24px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+            <h2 style="margin: 0; font-size: 20px;">Barangay Konek</h2>
+          </div>
+          <div style="padding: 24px; background: #ffffff;">
+            <h3 style="margin: 0 0 12px; color: #1f2937;">Registration Successful!</h3>
+            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+              Dear ${data.first_name} ${data.last_name},
+            </p>
+            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+              Thank you for registering on <strong>Barangay Konek</strong>.
+              Your account is currently <strong>pending approval</strong> by your Barangay officials.
+              You will receive another email once your account has been verified.
+            </p>
+            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+              If you have any concerns, please contact your Barangay Office.
+            </p>
+            <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
+              Best regards,<br/>
+              <strong>Barangay Konek Team</strong>
+            </p>
+          </div>
+        </div>
+        <div style="text-align: center; padding: 16px; font-size: 12px; color: #777;">
+          &copy; ${new Date().getFullYear()} Barangay Konek. All rights reserved.
+        </div>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: `"Barangay Konek" <${process.env.NEXT_PUBLIC_SMTP_USER ?? undefined}>`,
+      to: data.email,
+      subject,
+      html,
+    });
+
+    console.log(`📧 Registration email sent to ${data.email}`);
+
+    return { success: true, data };
   } catch (error) {
-    console.error('Unexpected error:', error)
-    return { success: false, error: 'Unexpected error occurred' }
+    console.error("Unexpected error:", error);
+    return { success: false, error: "Unexpected error occurred" };
   }
 }
 
+
 export async function updateUser(
-  userId: string, 
-  userData: Pick<UserUpdate, 'first_name' | 'last_name' | 'email' | 'password' | 'birthdate' | 'permanent_address' | 'permanent_barangay' | 'current_address' | 'current_barangay' | 'contact_no' | 'middle_name' | 'mbarangayid' | 'user_type' | 'sign_up_status'>
+  userId: string,
+  userData: Pick<
+    UserUpdate,
+    | "first_name"
+    | "last_name"
+    | "email"
+    | "password"
+    | "birthdate"
+    | "permanent_address"
+    | "permanent_barangay"
+    | "current_address"
+    | "current_barangay"
+    | "contact_no"
+    | "middle_name"
+    | "mbarangayid"
+    | "user_type"
+    | "sign_up_status"
+  >
 ): Promise<{ success: boolean; data?: User; error?: string }> {
   try {
-    const supabase = await createSupabaseServerClient()
-    
+    const supabase = await createSupabaseServerClient();
+
     const updateData: UserUpdate = {
       ...userData,
-      updated_at: new Date().toISOString()
-    }
+      updated_at: new Date().toISOString(),
+    };
 
-    // Hash password if it's being updated
     if (userData.password) {
-      const hashedPassword = await bcrypt.hash(userData.password, 12)
-      updateData.password = hashedPassword
+      const hashedPassword = await bcrypt.hash(userData.password, 12);
+      updateData.password = hashedPassword;
     }
 
     const { data, error } = await supabase
-      .from('mUsers')
+      .from("mUsers")
       .update(updateData)
-      .eq('id', Number(userId))
+      .eq("id", Number(userId))
       .select()
-      .single()
+      .single();
 
     if (error) {
-      console.error('Error updating user:', error)
-      return { success: false, error: error.message }
+      console.error("Error updating user:", error);
+      return { success: false, error: error.message };
     }
 
-    return { success: true, data }
+    if (data?.email && userData.sign_up_status) {
+      const transporter = nodemailer.createTransport({
+        host: process.env.NEXT_PUBLIC_SMTP_HOST,
+        port: Number(process.env.NEXT_PUBLIC_SMTP_PORT),
+        auth: {
+          user: process.env.NEXT_PUBLIC_SMTP_USER,
+          pass: process.env.NEXT_PUBLIC_SMTP_PASS,
+        },
+      });
+
+      const isApproved = userData.sign_up_status === "approved";
+      const subject = isApproved
+        ? "Barangay Konek Account Approved"
+        : "Barangay Konek Registration Rejected";
+
+      const html = `
+        <div style="font-family: Arial, sans-serif; background-color: #f3f6f9; padding: 24px;">
+          <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+            <div style="background-color: #2563eb; color: #ffffff; padding: 16px 24px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+              <h2 style="margin: 0; font-size: 20px;">Barangay Konek</h2>
+            </div>
+            <div style="padding: 24px;">
+              <h3 style="margin: 0 0 12px; color: #1f2937;">Account Status Update</h3>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                Dear ${data.first_name || "User"},
+              </p>
+              ${
+                isApproved
+                  ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                      We are pleased to inform you that your <b>Barangay Konek</b> account has been <b>approved</b>.
+                    </p>
+                    <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                      You can now log in and access all available features.
+                    </p>`
+                  : `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                      We regret to inform you that your <b>Barangay Konek</b> registration has been <b>rejected</b>.
+                    </p>
+                    <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                      If you believe this was an error, please contact your Barangay Office for assistance.
+                    </p>`
+              }
+              <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
+                Best regards,<br/>
+                <strong>Barangay Konek Team</strong>
+              </p>
+            </div>
+          </div>
+          <div style="text-align: center; padding: 16px; font-size: 12px; color: #777;">
+            &copy; ${new Date().getFullYear()} Barangay Konek. All rights reserved.
+          </div>
+        </div>
+      `;
+
+      await transporter.sendMail({
+        from: `"Barangay Konek" <${process.env.NEXT_PUBLIC_SMTP_USER}>`,
+        to: data.email,
+        subject,
+        html,
+      });
+
+      console.log(`📧 Email sent to ${data.email}: ${subject}`);
+    }
+
+    return { success: true, data };
   } catch (error) {
-    console.error('Unexpected error:', error)
-    return { success: false, error: 'Unexpected error occurred' }
+    console.error("Unexpected error in updateUser:", error);
+    return { success: false, error: "Unexpected error occurred" };
   }
 }
 

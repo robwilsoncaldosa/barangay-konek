@@ -7,7 +7,15 @@ type Certificate = Database['public']['Tables']['mCertificate']['Row']
 type CertificateInsert = Database['public']['Tables']['mCertificate']['Insert']
 type CertificateUpdate = Database['public']['Tables']['mCertificate']['Update']
 
-export async function getCertificates(): Promise<Certificate[]> {
+export interface CertificateParams {
+  id: number
+  name: string
+  fee: number
+  processing_time: string
+  requirements: string
+}
+
+export async function getCertificates(): Promise<CertificateParams[]> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -20,7 +28,17 @@ export async function getCertificates(): Promise<Certificate[]> {
       return []
     }
 
-    return data || []
+    if (!data) return []
+
+    const certificates: CertificateParams[] = data.map(c => ({
+      id: c.id,
+      name: c.name || '',
+      fee: c.fee ?? 0,
+      processing_time: c.processing_time || '',
+      requirements: c.requirements || '',
+    }))
+
+    return certificates
   } catch (error) {
     console.error('Unexpected error:', error)
     return []
@@ -110,14 +128,37 @@ export async function updateCertificate(
   }
 }
 
-export async function deleteCertificate(certificateId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteCertificate(
+  certificateId: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
-    
-    // Soft delete by setting del_flag to 1
+
+    // Check if the certificate is used in any mRequest record
+    const { data: requests, error: requestError } = await supabase
+      .from('mRequest')
+      .select('id')
+      .eq('mCertificateId', Number(certificateId))
+      .eq('del_flag', 0)
+      .limit(1)
+
+    if (requestError) {
+      console.error('Error checking certificate usage:', requestError)
+      return { success: false, error: requestError.message }
+    }
+
+    // If found, prevent deletion
+    if (requests && requests.length > 0) {
+      return {
+        success: false,
+        error: 'Cannot delete certificate because it is currently in use by one or more requests.'
+      }
+    }
+
+    // Proceed with soft delete
     const { error } = await supabase
       .from('mCertificate')
-      .update({ 
+      .update({
         del_flag: 1,
         updated_at: new Date().toISOString()
       })

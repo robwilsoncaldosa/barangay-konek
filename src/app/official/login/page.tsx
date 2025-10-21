@@ -1,48 +1,48 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+
+import { loginUser } from '../../../server/auth';
 
 const OfficialLogin = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const router = useRouter();
-
-  useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user && JSON.parse(user).user_type === "official") {
-      router.push("/official");
-    }
-  }, [router]);
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage("Logging in...");
+    e.preventDefault()
+    setMessage('Logging in...')
 
-    const res = await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "login",
-        email: email,
-        password: password,
-      }),
-    });
+    try {
+      const result = await loginUser(email, password)
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      if (data.message === "User not found") {
-        setMessage("Official not found. You can create an account or reset password.");
-      } else {
-        setMessage(`❌ ${data.message}`);
+      if (!result.success) {
+        setMessage(`❌ ${result.error || 'Login failed'}`)
+        return
       }
-      return;
-    }
 
-    localStorage.setItem("user", JSON.stringify(data.user));
-    router.push("/official");
-  };
+      localStorage.setItem('user', JSON.stringify(result.user))
+
+      switch (result.user?.user_type) {
+        case 'official':
+          router.push('/official')
+          break
+        case 'resident':
+          router.push('/resident')
+          break
+        case 'admin':
+          router.push('/admin')
+          break
+        default:
+          router.push('/')
+      }
+    } catch (err) {
+      console.error('Login failed:', err)
+      setMessage('❌ Unexpected error occurred.')
+    }
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-blue-50">
@@ -77,10 +77,16 @@ const OfficialLogin = () => {
         </form>
 
         <div className="mt-4 flex justify-between text-sm">
-          <a href="/official/forgot-password" className="text-blue-600 hover:underline">
+          <a
+            href="/official/forgot-password"
+            className="text-blue-600 hover:underline"
+          >
             Forgot Password?
           </a>
-          <a href="/register/official?userType=official" className="text-blue-600 hover:underline">
+          <a
+            href="/register/official?userType=official"
+            className="text-blue-600 hover:underline"
+          >
             Create Account
           </a>
         </div>
@@ -88,7 +94,7 @@ const OfficialLogin = () => {
         {message && <p className="mt-2 text-center text-gray-600">{message}</p>}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default OfficialLogin;
+export default OfficialLogin

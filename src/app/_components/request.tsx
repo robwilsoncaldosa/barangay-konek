@@ -3,20 +3,26 @@
 import { useEffect, useState } from "react";
 import { connectWallet, addCertificateRequest } from "@/lib/blockchain";
 
+import {
+    getRequests,
+    completeRequestWithFile,
+    updateRequestStatus,
+} from "@/server/request";
+
 interface RequestData {
     id: number;
-    mCertificateId: number;
+    mCertificateId: number | null;
     resident_id: number;
     purpose: string;
     document_type: string;
     request_date: string;
-    priority: string;
-    status: string;
-    payment_status: string;
-    created_at: string;
-    updated_at: string;
-    email: string;
-    tx_hash?: string;
+    priority: string | null;
+    status: string | null;
+    payment_status: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+    resident_email: string;
+    tx_hash?: string | null;
 }
 
 const RequestPage = () => {
@@ -31,11 +37,21 @@ const RequestPage = () => {
     const fetchRequests = async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/requests");
-            const data = await res.json();
-            if (data.success) setRequests(data.data);
-        } catch (err) { console.error(err); }
-        finally { setLoading(false); }
+            const data = await getRequests();
+
+            if (!data || data.length === 0) {
+                console.warn("No requests found.");
+                setRequests([]);
+                return;
+            }
+
+            setRequests(data);
+        } catch (err) {
+            console.error("Error fetching requests:", err);
+            setRequests([]); // fallback
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -61,66 +77,72 @@ const RequestPage = () => {
     };
 
     const handleSubmit = async () => {
-        if (!file || !selectedRequest) return;
+        if (!file || !selectedRequest) return
 
-        const email = selectedRequest.email;
+        const email = selectedRequest.resident_email
         if (!email) {
-            setMessage("❌ Resident email not found!");
-            return;
+            setMessage("❌ Resident email not found!")
+            return
         }
 
-        setMessage("📤 Uploading PDF...");
+        setMessage("📤 Uploading PDF...")
 
         try {
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("request_id", selectedRequest.id.toString());
-
-            let tx_hash = "";
+            let tx_hash = ""
             if (hasMetaMask) {
-                setMessage("⏳ Preparing blockchain registration...");
-                const walletAddress = await connectWallet();
-                console.log("Wallet connected:", walletAddress);
+                setMessage("⏳ Preparing blockchain registration...")
+                const walletAddress = await connectWallet()
+                console.log("Wallet connected:", walletAddress)
 
                 tx_hash = await addCertificateRequest(
-                    selectedRequest.mCertificateId,
+                    Number(selectedRequest.mCertificateId),
                     Number(selectedRequest.resident_id),
                     selectedRequest.document_type,
                     selectedRequest.purpose,
-                    selectedRequest.priority
-                );
+                    selectedRequest.priority as string
+                )
 
-                console.log("Blockchain transaction hash:", tx_hash);
+                console.log("Blockchain transaction hash:", tx_hash)
+
+                // Optionally update blockchain status on Supabase
+                await updateRequestStatus(
+                    selectedRequest.id.toString(),
+                    "pending",
+                    selectedRequest.document_type
+                )
             }
 
-            // Add blockchain info to FormData
-            formData.append("blockchain", hasMetaMask ? "1" : "0");
-            if (tx_hash) formData.append("tx_hash", tx_hash);
+            // Call server function directly
+            const { success, data, error } = await completeRequestWithFile({
+                requestId: selectedRequest.id.toString(),
+                email,
+                file,
+                tx_hash,
+            })
 
-            // Upload PDF + optional blockchain info
-            const uploadRes = await fetch("/api/requests", { method: "PUT", body: formData });
-            const uploadData = await uploadRes.json();
-
-            if (!uploadData.success) {
-                setMessage(`❌ Upload failed: ${uploadData.message}`);
-                return;
+            if (!success) {
+                setMessage(`❌ Upload failed: ${error}`)
+                return
             }
 
-            console.log("PDF uploaded successfully:", uploadData.data);
-            setMessage("✅ PDF uploaded successfully!");
+            setMessage("✅ Request completed and email sent!")
 
             // Update local state
-            setRequests(prev => prev.map(r =>
-                r.id === selectedRequest.id ? { ...r, tx_hash: tx_hash || r.tx_hash } : r
-            ));
+            setRequests(prev =>
+                prev.map(r =>
+                    r.id === selectedRequest.id
+                        ? { ...r, tx_hash: tx_hash || r.tx_hash, status: "completed" }
+                        : r
+                )
+            )
 
-            setModalOpen(false);
-            fetchRequests();
+            setModalOpen(false)
+            fetchRequests()
         } catch (err) {
-            console.error("Unexpected error:", err);
-            setMessage("❌ Unexpected error occurred. Check console.");
+            console.error("Unexpected error:", err)
+            setMessage("❌ Unexpected error occurred. Check console.")
         }
-    };
+    }
 
     return (
         <div className="p-6">
@@ -151,7 +173,7 @@ const RequestPage = () => {
                                         <td>{req.payment_status}</td>
                                         <td>
                                             {req.tx_hash
-                                                ? <a href={`https://sepolia.etherscan.io/tx/${req.tx_hash}`} target="_blank" rel="noopener noreferrer">{req.tx_hash.slice(0, 10)}...</a>
+                                                ? <a href={`https://sepolia-blockscout.lisk.com/tx/${req.tx_hash}`} target="_blank" rel="noopener noreferrer">{req.tx_hash.slice(0, 10)}...</a>
                                                 : "—"}
                                         </td>
                                         <td>

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-
+import { getUsersByType, updateUser } from "@/server/user";
 type User = {
     id: number;
     first_name: string;
@@ -13,10 +13,11 @@ type User = {
     current_address: string;
     current_barangay: string;
     contact_no: string;
-    mBarangayId: number | null;
+    mBarangayId: number | null; // match Supabase column
     user_type: string;
     sign_up_status: string;
 };
+
 
 type Props = { userType: "official" | "resident"; };
 
@@ -40,18 +41,37 @@ const UserTable = ({ userType }: Props) => {
         mBarangayId: "",
         user_type: userType,
     });
-
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/mUsers?user_type=${userType}`);
-            const result = await res.json();
-            if (result.success) setUsers(result.data);
-            else console.error(result.message);
+            const data = await getUsersByType(userType); // returns Supabase rows
+
+            // Map data to match frontend User type
+            const mappedData: User[] = data.map(u => ({
+                id: u.id,
+                first_name: u.first_name || '',
+                middle_name: u.middle_name || '', // handle null
+                last_name: u.last_name || '',
+                email: u.email || '',
+                birthdate: u.birthdate || '',
+                permanent_address: u.permanent_address || '',
+                permanent_barangay: u.permanent_barangay || '',
+                current_address: u.current_address || '',
+                current_barangay: u.current_barangay || '',
+                contact_no: u.contact_no || '',
+                mBarangayId: u.mbarangayid ?? null, // rename and handle null
+                user_type: u.user_type,
+                sign_up_status: u.sign_up_status || ''
+            }));
+
+            setUsers(mappedData);
         } catch (err) {
             console.error(err);
-        } finally { setLoading(false); }
+        } finally {
+            setLoading(false);
+        }
     };
+
 
     const handleAddUser = async () => {
         const payload = {
@@ -77,7 +97,6 @@ const UserTable = ({ userType }: Props) => {
         } else alert(result.message);
     };
 
-
     const handleDelete = async (id: number) => {
         if (!confirm("Delete this user?")) return;
         const res = await fetch("/api/mUsers", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
@@ -86,18 +105,19 @@ const UserTable = ({ userType }: Props) => {
         else alert(result.message);
     };
 
-    const handleEdit = async (id: number, status: "approved" | "rejected") => {
-        try {
-            const res = await fetch("/api/mUsers", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, sign_up_status: status }),
-            });
-            const result = await res.json();
-            if (result.success) fetchUsers();
-            else alert(result.message);
-        } catch (err) { console.error(err); }
-    };
+const handleEdit = async (id: number, status: "approved" | "rejected") => {
+  try {
+    const result = await updateUser(String(id), { sign_up_status: status });
+    if (result.success) {
+      fetchUsers();
+    } else {
+      alert(result.error || "Failed to update user status.");
+    }
+  } catch (err) {
+    console.error("Error updating user:", err);
+  }
+};
+
 
     useEffect(() => { fetchUsers(); }, []);
 
