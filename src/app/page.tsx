@@ -3,6 +3,7 @@ import { HeroSection } from './_components/hero-section'
 import { FeaturesSection } from './_components/features-section'
 import { AboutSection } from './_components/about-section'
 import { Footer } from './_components/footer'
+import Chatbot from "@/components/ui/chats";
 
 export default async function HomePage() {
   return (
@@ -11,6 +12,7 @@ export default async function HomePage() {
       <HeroSection />
       <FeaturesSection />
       <AboutSection />
+       <Chatbot />
       <Footer />
     </div>
   )
