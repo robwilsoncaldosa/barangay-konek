@@ -5,9 +5,9 @@ export function LoginLinks() {
     <div className="space-y-4 text-center">
       <Link 
         href="/forgot-password" 
-        className="text-primary hover:text-primary/80 font-medium transition-colors duration-200"
+        className="text-primary hover:text-primary/80 font-medium transition-colors duration-200 block"
       >
-        Forgot Password?
+        Forgot password
       </Link>
       <div className="text-muted-foreground">
          Don&apos;t have an account?{' '}
@@ -15,7 +15,7 @@ export function LoginLinks() {
            href="/register" 
            className="text-primary hover:text-primary/80 font-medium transition-colors duration-200"
          >
-           Create Account
+           Register Resident
          </Link>
        </div>
     </div>
