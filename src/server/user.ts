@@ -20,7 +20,7 @@ export interface AuthUser {
   }
 }
 
-export async function GetUser(): Promise<{ success: boolean; data?: AuthUser | null; message?: string }> {
+export async function getUser(): Promise<{ success: boolean; data?: AuthUser | null; message?: string }> {
   try {
     const { cookies } = await import("next/headers");
     const cookieStore = await cookies();
@@ -48,20 +48,21 @@ export async function GetUser(): Promise<{ success: boolean; data?: AuthUser | n
     } catch {
       throw new Error("Invalid or corrupted authentication cookie.");
     }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unexpected error";
-    return { success: false, message };
+  } catch (error) {
+    console.error("Error getting user:", error);
+    return { success: false, message: "Failed to get user" };
   }
 }
 
 
-export async function GetUserById(userId: number): Promise<User | null> {
+export async function getUserById(userId: number): Promise<User | null> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
       .from('mUsers')
       .select('*')
       .eq('id', userId)
+      .eq('del_flag', 0)
       .single()
 
     if (error) {
@@ -76,13 +77,14 @@ export async function GetUserById(userId: number): Promise<User | null> {
   }
 }
 
-export async function GetUsersByType(userType: 'official' | 'resident' = 'official'): Promise<User[]> {
+export async function getUsersByType(userType: 'official' | 'resident' = 'official'): Promise<User[]> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
       .from('mUsers')
       .select('*')
       .eq('user_type', userType)
+      .eq('del_flag', 0)
       .order('id', { ascending: true })
 
     if (error) {
@@ -97,7 +99,7 @@ export async function GetUsersByType(userType: 'official' | 'resident' = 'offici
   }
 }
 
-export async function CreateUser(
+export async function createUser(
   userData: Pick<
     UserInsert,
     | "first_name"
@@ -199,7 +201,7 @@ export async function CreateUser(
 }
 
 
-export async function UpdateUser(
+export async function updateUser(
   userId: string,
   userData: Pick<
     UserUpdate,
@@ -313,7 +315,7 @@ export async function UpdateUser(
   }
 }
 
-export async function DeleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
 
@@ -338,7 +340,7 @@ export async function DeleteUser(userId: string): Promise<{ success: boolean; er
   }
 }
 
-export async function RegisterUser(
+export async function registerUser(
   userData: Pick<UserInsert, 'first_name' | 'last_name' | 'email' | 'password' | 'birthdate' | 'permanent_address' | 'permanent_barangay' | 'current_address' | 'current_barangay' | 'contact_no' | 'middle_name' | 'mbarangayid' | 'user_type'>
 ): Promise<{ success: boolean; data?: User; error?: string }> {
   try {
@@ -360,15 +362,15 @@ export async function RegisterUser(
       return { success: false, error: 'User with this email already exists' }
     }
 
-    // Create the user using existing CreateUser function (which now hashes password)
-    return await CreateUser(userData)
+    // Create the user using existing createUser function (which now hashes password)
+    return await createUser(userData)
   } catch (error) {
     console.error('Registration error:', error)
     return { success: false, error: 'Registration failed' }
   }
 }
 
-export async function HandleUserRedirect(user: AuthUser | null) {
+export async function handleUserRedirect(user: AuthUser | null) {
   if (!user) return
 
   const userType = user.user_metadata?.user_type

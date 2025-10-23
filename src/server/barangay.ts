@@ -7,7 +7,7 @@ type Barangay = Database['public']['Tables']['mBarangay']['Row']
 type BarangayInsert = Database['public']['Tables']['mBarangay']['Insert']
 type BarangayUpdate = Database['public']['Tables']['mBarangay']['Update']
 
-export async function GetBarangays(): Promise<{ success: boolean; data?: Barangay[]; error?: string }> {
+export async function getBarangays(): Promise<{ success: boolean; data?: Barangay[]; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -28,7 +28,7 @@ export async function GetBarangays(): Promise<{ success: boolean; data?: Baranga
   }
 }
 
-export async function GetBarangayById(id: number): Promise<{ success: boolean; data?: Barangay; error?: string }> {
+export async function getBarangayById(id: number): Promise<{ success: boolean; data?: Barangay; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -50,7 +50,7 @@ export async function GetBarangayById(id: number): Promise<{ success: boolean; d
   }
 }
 
-export async function CreateBarangay(
+export async function createBarangay(
   barangayData: Pick<BarangayInsert, 'name' | 'city' | 'province'>
 ): Promise<{ success: boolean; data?: Barangay; error?: string }> {
   try {
@@ -82,7 +82,7 @@ export async function CreateBarangay(
   }
 }
 
-export async function UpdateBarangay(
+export async function updateBarangay(
   barangayId: string, 
   barangayData: Pick<BarangayUpdate, 'name' | 'city' | 'province'>
 ): Promise<{ success: boolean; data?: Barangay; error?: string }> {
@@ -112,7 +112,7 @@ export async function UpdateBarangay(
   }
 }
 
-export async function DeleteBarangay(barangayId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteBarangay(barangayId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
     

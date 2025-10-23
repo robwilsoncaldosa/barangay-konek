@@ -15,7 +15,7 @@ export interface LoginResult {
   user?: Pick<User, 'id' | 'first_name' | 'last_name' | 'email' | 'user_type'>
 }
 
-export async function LoginUser(email: string, password: string): Promise<LoginResult> {
+export async function loginUser(email: string, password: string): Promise<LoginResult> {
   try {
     if (!email || !password) {
       return { success: false, error: 'Email and password are required' }
@@ -98,7 +98,7 @@ export async function LoginUser(email: string, password: string): Promise<LoginR
 }
 
 // Dedicated server action for resident login with proper redirect handling
-export async function LoginResidentAction(formData: FormData) {
+export async function loginResidentAction(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
@@ -113,7 +113,7 @@ export async function LoginResidentAction(formData: FormData) {
     redirect('/login?error=' + encodeURIComponent('Please enter a valid email address'))
   }
 
-  const result = await LoginUser(email, password)
+  const result = await loginUser(email, password)
   
   if (result.success) {
     // Redirect based on user type
@@ -136,7 +136,7 @@ export async function LoginResidentAction(formData: FormData) {
   }
 }
 
-export async function LogoutUser() {
+export async function logoutUser() {
   try {
     const supabase = await createSupabaseServerClient()
     const cookieStore = await cookies()
@@ -155,8 +155,8 @@ export async function LogoutUser() {
   }
 }
 
-export async function AuthenticateUser(email: string, password: string) {
-  const result = await LoginUser(email, password)
+export async function authenticateUser(email: string, password: string) {
+  const result = await loginUser(email, password)
 
   if (result.success) {
     // Redirect to dashboard or appropriate page after successful login

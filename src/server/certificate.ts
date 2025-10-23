@@ -7,7 +7,7 @@ type Certificate = Database['public']['Tables']['mCertificate']['Row']
 type CertificateInsert = Database['public']['Tables']['mCertificate']['Insert']
 type CertificateUpdate = Database['public']['Tables']['mCertificate']['Update']
 
-export async function GetCertificates(): Promise<Certificate[]> {
+export async function getCertificates(): Promise<Certificate[]> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -28,7 +28,7 @@ export async function GetCertificates(): Promise<Certificate[]> {
   }
 }
 
-export async function GetCertificateById(certificateId: string): Promise<Certificate | null> {
+export async function getCertificateById(certificateId: string): Promise<Certificate | null> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -49,15 +49,15 @@ export async function GetCertificateById(certificateId: string): Promise<Certifi
   }
 }
 
-export async function CreateCertificate(
+export async function createCertificate(
   certificateData: Pick<CertificateInsert, 'name' | 'requirements' | 'fee'>
 ): Promise<{ success: boolean; data?: Certificate; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
     const insertData: CertificateInsert = {
       name: certificateData.name,
-      ...(certificateData.requirements && { requirements: certificateData.requirements }),
-      ...(certificateData.fee !== undefined && { fee: certificateData.fee }),
+      requirements: certificateData.requirements,
+      fee: certificateData.fee,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       del_flag: 0
@@ -81,7 +81,7 @@ export async function CreateCertificate(
   }
 }
 
-export async function UpdateCertificate(
+export async function updateCertificate(
   certificateId: string, 
   certificateData: Pick<CertificateUpdate, 'name' | 'requirements' | 'fee'>
 ): Promise<{ success: boolean; data?: Certificate; error?: string }> {
@@ -111,37 +111,16 @@ export async function UpdateCertificate(
   }
 }
 
-export async function DeleteCertificate(
+export async function deleteCertificate(
   certificateId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
-
-    // Check if the certificate is used in any mRequest record
-    const { data: requests, error: requestError } = await supabase
-      .from('mRequest')
-      .select('id')
-      .eq('mCertificateId', Number(certificateId))
-      .eq('del_flag', 0)
-      .limit(1)
-
-    if (requestError) {
-      console.error('Error checking certificate usage:', requestError)
-      return { success: false, error: requestError.message }
-    }
-
-    // If found, prevent deletion
-    if (requests && requests.length > 0) {
-      return {
-        success: false,
-        error: 'Cannot delete certificate because it is currently in use by one or more requests.'
-      }
-    }
-
-    // Proceed with soft delete
+    
+    // Soft delete by setting del_flag to 1
     const { error } = await supabase
       .from('mCertificate')
-      .update({
+      .update({ 
         del_flag: 1,
         updated_at: new Date().toISOString()
       })
