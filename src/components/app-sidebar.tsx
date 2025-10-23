@@ -42,9 +42,9 @@ const getNavigationItems = (userType: string) => {
   if (isDev) {
     // In development, show all navigation items for testing
     return [
-      { title: "Admin Dashboard", url: "/admin", icon: LayoutDashboard },
-      { title: "Official Dashboard", url: "/official", icon: Building },
-      { title: "Resident Dashboard", url: "/resident", icon: Home },
+      { title: "Admin", url: "/admin", icon: LayoutDashboard },
+      { title: "Official", url: "/official", icon: Building },
+      { title: "Resident", url: "/resident", icon: Home },
       { title: "Users", url: "/admin/users", icon: Users },
       { title: "Requests", url: "/admin/requests", icon: ClipboardList },
       { title: "Certificates", url: "/admin/certificates", icon: FileText },
@@ -84,20 +84,15 @@ const getSecondaryNavItems = (userType: string) => {
   const commonItems = [
     {
       title: "Settings",
-      url: userType === "super_admin" ? "/admin/settings" : 
-           userType === "official" ? "/official/settings" : "/resident/settings",
+      url: userType === "super_admin" ? "/admin/settings" :
+        userType === "official" ? "/official/settings" : "/resident/settings",
       icon: Settings,
     },
   ]
 
   if (userType === "super_admin") {
     return [
-      ...commonItems,
-      {
-        title: "System Settings",
-        url: "/admin/system",
-        icon: Settings,
-      },
+      ...commonItems
     ]
   }
 
@@ -122,8 +117,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   <span className="truncate font-semibold">Barangay Konek</span>
                   <span className="truncate text-xs">
                     {user?.user_type === "super_admin" ? "Admin Panel" :
-                     user?.user_type === "official" ? "Official Panel" :
-                     user?.user_type === "resident" ? "Resident Portal" : "Dashboard"}
+                      user?.user_type === "official" ? "Official Panel" :
+                        user?.user_type === "resident" ? "Resident Portal" : "Dashboard"}
                   </span>
                 </div>
               </Link>
