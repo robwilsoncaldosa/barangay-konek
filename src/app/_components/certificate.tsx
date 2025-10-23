@@ -3,11 +3,14 @@
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  GetCertificates,
-  CreateCertificate,
-  UpdateCertificate,
-  DeleteCertificate,
+  getCertificates,
+  createCertificate,
+  updateCertificate,
+  deleteCertificate,
 } from '@/server/certificate'
+import type { Database } from '../../../database.types'
+
+type Certificate = Database['public']['Tables']['mCertificate']['Row']
 
 type CertificateParams = {
   id: number
@@ -51,9 +54,9 @@ export default function CertificatePage() {
 
   const fetchCertificates = async () => {
     try {
-      const data = await GetCertificates()
+      const data = await getCertificates()
       setCertificates(
-        data.map((item) => ({
+        data.map((item: Certificate) => ({
           id: item.id,
           name: item.name,
           fee: item.fee ?? 0,
@@ -72,7 +75,7 @@ export default function CertificatePage() {
   const handleDelete = (id: number) => {
     if (confirm('Are you sure you want to delete this certificate?')) {
       startTransition(async () => {
-        const res = await DeleteCertificate(String(id))
+        const res = await deleteCertificate(String(id))
         if (res.success) {
           setCertificates((prev) => prev.filter((c) => c.id !== id))
         } else {
@@ -116,7 +119,7 @@ export default function CertificatePage() {
 
       if (editingCert) {
         // update
-        const res = await UpdateCertificate(String(editingCert.id), payload)
+        const res = await updateCertificate(String(editingCert.id), payload)
         if (res.success) {
           setCertificates((prev) =>
             prev.map((c) =>
@@ -129,7 +132,7 @@ export default function CertificatePage() {
         }
       } else {
         // add new
-        const res = await CreateCertificate(payload)
+        const res = await createCertificate(payload)
         if (res.success && res.data) {
           const newCert = Array.isArray(res.data) ? res.data[0] : res.data
           setCertificates((prev) => [...prev, newCert])
