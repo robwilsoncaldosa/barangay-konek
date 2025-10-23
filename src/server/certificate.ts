@@ -7,20 +7,13 @@ type Certificate = Database['public']['Tables']['mCertificate']['Row']
 type CertificateInsert = Database['public']['Tables']['mCertificate']['Insert']
 type CertificateUpdate = Database['public']['Tables']['mCertificate']['Update']
 
-export interface CertificateParams {
-  id: number
-  name: string
-  fee: number
-  processing_time: string
-  requirements: string
-}
-
-export async function getCertificates(): Promise<CertificateParams[]> {
+export async function getCertificates(): Promise<Certificate[]> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
       .from('mCertificate')
       .select('*')
+      .eq('del_flag', 0)
       .order('id', { ascending: true })
 
     if (error) {
@@ -28,17 +21,7 @@ export async function getCertificates(): Promise<CertificateParams[]> {
       return []
     }
 
-    if (!data) return []
-
-    const certificates: CertificateParams[] = data.map(c => ({
-      id: c.id,
-      name: c.name || '',
-      fee: c.fee ?? 0,
-      processing_time: c.processing_time || '',
-      requirements: c.requirements || '',
-    }))
-
-    return certificates
+    return data || []
   } catch (error) {
     console.error('Unexpected error:', error)
     return []
