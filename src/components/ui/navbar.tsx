@@ -50,7 +50,7 @@ interface NavLinkProps {
   icon?: React.ReactNode
 }
 
-function NavLink({ href, children, variant = "ghost", className, icon }: NavLinkProps) {
+function NavLink({ href, children, variant = "ghost", className }: NavLinkProps) {
   return (
     <Button
       asChild
@@ -61,8 +61,7 @@ function NavLink({ href, children, variant = "ghost", className, icon }: NavLink
         className
       )}
     >
-      <Link href={href} className="flex items-center gap-2">
-        {icon}
+      <Link href={href}>
         {children}
       </Link>
     </Button>
@@ -200,19 +199,22 @@ export function Navbar({
         {user && navigationItems.length > 0 && (
           <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
-              {navigationItems.map((item) => (
-                <NavigationMenuItem key={item.href}>
-                  <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                    <Link
-                      href={item.href}
-                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {/* Icon + Label side-by-side */}
-                      <span>{item.label}</span>
-                    </Link>
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              ))}
+              {navigationItems.map((item) => {
+                const IconComponent = item.icon
+                return (
+                  <NavigationMenuItem key={item.href}>
+                    <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                      <Link
+                        href={item.href}
+                        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <IconComponent className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                )
+              })}
             </NavigationMenuList>
           </NavigationMenu>
         )}
@@ -236,10 +238,10 @@ export function Navbar({
             {!user ? (
               // Guest Navigation
               <div className="hidden sm:flex items-center gap-2">
-                <NavLink href="/login">Resident Login</NavLink>
-                <NavLink href="/official/login">Official Login</NavLink>
-                <NavLink href="/admin/login">Admin Login</NavLink>
-                <NavLink href="/register" variant="default">
+                <NavLink href="/login" icon={<Home className="h-4 w-4" />}>Resident Login</NavLink>
+                <NavLink href="/official/login" icon={<Building className="h-4 w-4" />}>Official Login</NavLink>
+                <NavLink href="/admin/login" icon={<Settings className="h-4 w-4" />}>Admin Login</NavLink>
+                <NavLink href="/register" variant="default" icon={<UserCheck className="h-4 w-4" />}>
                   Sign Up
                 </NavLink>
               </div>

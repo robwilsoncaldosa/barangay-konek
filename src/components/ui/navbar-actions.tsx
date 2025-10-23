@@ -21,7 +21,7 @@ import {
   Bell
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { LogoutUser } from "@/server/auth"
+import { logoutUser } from "@/server/auth"
 
 interface NavbarActionsProps {
   user: {
@@ -39,7 +39,7 @@ export function NavbarActions({ user, className }: NavbarActionsProps) {
   const handleLogout = async () => {
     try {
       // Use the server action instead of API call
-      const result = await LogoutUser()
+      const result = await logoutUser()
 
       if (!result.success) {
         console.error('Logout error:', result.error)
