@@ -20,7 +20,7 @@ export function HeroSection() {
 
         {/* Content */}
         <div className="space-y-6 md:space-y-8">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight" style={{ color: '#053282' }}>
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-foreground">
             Digital Management System
           </h1>
 
@@ -30,7 +30,7 @@ export function HeroSection() {
           </p>
 
           <div className="flex justify-center">
-            <Button size="lg" className="text-white px-6 md:px-8 py-2 md:py-3" style={{ backgroundColor: '#053282' }} asChild>
+            <Button size="lg" className="text-white px-6 md:px-8 py-2 md:py-3 bg-primary hover:bg-primary/90" asChild>
               <Link href="/register">
                 Start Free Trial
               </Link>

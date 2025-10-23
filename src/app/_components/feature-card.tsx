@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { NeumorphEyebrow } from '@/components/ui/neumorph-eyebrow'
 
 interface FeatureCardProps {
   title: string
@@ -18,16 +18,11 @@ export function FeatureCard({ title, description, content, badge }: FeatureCardP
         <div className="flex items-center justify-between">
           <CardTitle>{title}</CardTitle>
           {badge && (
-            <Badge 
-              variant={badge.variant === 'beta' ? 'default' : 'secondary'}
-              className={
-                badge.variant === 'beta' 
-                  ? 'bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:text-white' 
-                  : 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900 dark:text-orange-200'
-              }
+            <NeumorphEyebrow 
+              intent={badge.variant === 'beta' ? 'primary' : 'secondary'}
             >
               {badge.text}
-            </Badge>
+            </NeumorphEyebrow>
           )}
         </div>
         <CardDescription>{description}</CardDescription>
