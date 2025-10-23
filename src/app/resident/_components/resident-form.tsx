@@ -3,9 +3,13 @@
 import { useState } from "react";
 import { createRequest } from "@/server/request";
 import { useRouter } from "next/navigation";
-import { Tables } from "../../../../database.types";
+import type { Database, Tables, TablesInsert } from "../../../../database.types";
 
 type Certificate = Tables<"mCertificate">;
+type RequestInsert = TablesInsert<"mRequest">;
+
+// Define priority type based on common values
+type Priority = "Normal" | "Urgent";
 
 interface ResidentFormProps {
   certificates: Certificate[];
@@ -14,12 +18,12 @@ interface ResidentFormProps {
 
 export default function ResidentForm({ certificates, userId }: ResidentFormProps) {
   const router = useRouter();
-  const [selectedCertificate, setSelectedCertificate] = useState("");
-  const [documentType, setDocumentType] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [priority, setPriority] = useState("Normal");
-  const [message, setMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedCertificate, setSelectedCertificate] = useState<string>("");
+  const [documentType, setDocumentType] = useState<string>("");
+  const [purpose, setPurpose] = useState<string>("");
+  const [priority, setPriority] = useState<Priority>("Normal");
+  const [message, setMessage] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,14 +37,16 @@ export default function ResidentForm({ certificates, userId }: ResidentFormProps
     setMessage("");
 
     try {
-      const result = await createRequest({
+      const requestData: Pick<RequestInsert, 'mCertificateId' | 'resident_id' | 'purpose' | 'document_type' | 'request_date' | 'priority'> = {
         resident_id: userId,
         mCertificateId: Number(selectedCertificate),
         document_type: documentType,
         purpose,
         request_date: new Date().toISOString().split("T")[0],
-        priority: priority as "Normal" | "Urgent",
-      });
+        priority,
+      };
+
+      const result = await createRequest(requestData);
 
       if (result.success) {
         setMessage("Request submitted successfully!");
@@ -119,7 +125,7 @@ export default function ResidentForm({ certificates, userId }: ResidentFormProps
           <select
             className="border p-2 w-full"
             value={priority}
-            onChange={(e) => setPriority(e.target.value)}
+            onChange={(e) => setPriority(e.target.value as Priority)}
             disabled={isSubmitting}
           >
             <option value="Normal">Normal</option>

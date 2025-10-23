@@ -7,20 +7,13 @@ type Certificate = Database['public']['Tables']['mCertificate']['Row']
 type CertificateInsert = Database['public']['Tables']['mCertificate']['Insert']
 type CertificateUpdate = Database['public']['Tables']['mCertificate']['Update']
 
-export interface CertificateParams {
-  id: number
-  name: string
-  fee: number
-  processing_time: string
-  requirements: string
-}
-
-export async function getCertificates(): Promise<CertificateParams[]> {
+export async function getCertificates(): Promise<Certificate[]> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
       .from('mCertificate')
       .select('*')
+      .eq('del_flag', 0)
       .order('id', { ascending: true })
 
     if (error) {
@@ -28,17 +21,7 @@ export async function getCertificates(): Promise<CertificateParams[]> {
       return []
     }
 
-    if (!data) return []
-
-    const certificates: CertificateParams[] = data.map(c => ({
-      id: c.id,
-      name: c.name || '',
-      fee: c.fee ?? 0,
-      processing_time: c.processing_time || '',
-      requirements: c.requirements || '',
-    }))
-
-    return certificates
+    return data || []
   } catch (error) {
     console.error('Unexpected error:', error)
     return []
@@ -73,8 +56,8 @@ export async function createCertificate(
     const supabase = await createSupabaseServerClient()
     const insertData: CertificateInsert = {
       name: certificateData.name,
-      ...(certificateData.requirements && { requirements: certificateData.requirements }),
-      ...(certificateData.fee !== undefined && { fee: certificateData.fee }),
+      requirements: certificateData.requirements,
+      fee: certificateData.fee,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       del_flag: 0
@@ -133,32 +116,11 @@ export async function deleteCertificate(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
-
-    // Check if the certificate is used in any mRequest record
-    const { data: requests, error: requestError } = await supabase
-      .from('mRequest')
-      .select('id')
-      .eq('mCertificateId', Number(certificateId))
-      .eq('del_flag', 0)
-      .limit(1)
-
-    if (requestError) {
-      console.error('Error checking certificate usage:', requestError)
-      return { success: false, error: requestError.message }
-    }
-
-    // If found, prevent deletion
-    if (requests && requests.length > 0) {
-      return {
-        success: false,
-        error: 'Cannot delete certificate because it is currently in use by one or more requests.'
-      }
-    }
-
-    // Proceed with soft delete
+    
+    // Soft delete by setting del_flag to 1
     const { error } = await supabase
       .from('mCertificate')
-      .update({
+      .update({ 
         del_flag: 1,
         updated_at: new Date().toISOString()
       })

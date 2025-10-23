@@ -2,11 +2,12 @@
 
 import React, { useContext, createContext, useCallback, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react'
+import { ArrowLeftIcon, CheckCircle2, ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useForm, UseFormReturn, DefaultValues } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { useRouter } from "next/navigation"
 
 type FormData = Record<string, unknown>
 
@@ -90,6 +91,8 @@ export interface MultiStepFormWrapperProps<T extends FormData = FormData> {
   logo?: React.ReactNode
   // Add real-time validation property
   enableRealtimeValidation?: boolean
+  // Add back button support
+  showBackButton?: boolean
 }
 
 export function Step<T extends FormData = FormData>({ children }: StepProps<T>): React.ReactNode {
@@ -125,7 +128,11 @@ export function MultiStepFormWrapper<T extends FormData = FormData>({
   logo,
   // Add real-time validation prop with default true
   enableRealtimeValidation = true,
+  // Add back button prop with default true
+  showBackButton = true,
 }: MultiStepFormWrapperProps<T>): React.ReactNode {
+
+  const router = useRouter()
 
   const steps = React.Children.toArray(children).filter(
     (child) => React.isValidElement(child) && child.type === Step
@@ -232,7 +239,7 @@ export function MultiStepFormWrapper<T extends FormData = FormData>({
   React.useEffect(() => {
     const stepSchema = CurrentStepComponent?.props.schema
     const canSkip = CurrentStepComponent?.props.canSkip || false
-    
+
     if (!stepSchema || canSkip) {
       setIsCurrentStepValid(true)
       return
@@ -247,11 +254,11 @@ export function MultiStepFormWrapper<T extends FormData = FormData>({
       try {
         // Get the fields for this step
         const stepFields = Object.keys(stepSchema.shape)
-        
+
         // Trigger validation for the current step fields
         //@ts-expect-error don't know how to fix this
         const isValid = await form.trigger(stepFields as (keyof T)[])
-        
+
         // Also check if all required fields have values
         const hasAllRequiredValues = stepFields.every(field => {
           const value = watchedValues[field as keyof T]
@@ -323,7 +330,7 @@ export function MultiStepFormWrapper<T extends FormData = FormData>({
 
     // Always trigger validation immediately when Continue is clicked
     setIsValidating(true)
-    
+
     try {
       let validationPassed = true
 
@@ -406,6 +413,16 @@ export function MultiStepFormWrapper<T extends FormData = FormData>({
     setCurrentStep(nextStep)
     onStepChange?.(prevStep, nextStep)
   }, [currentStep, isFirstStep, onStepChange])
+
+  const handleBackButton = useCallback((): void => {
+    if (isFirstStep) {
+      // If on first step, navigate back in browser
+      router.back()
+    } else {
+      // Otherwise, go to previous step
+      goToPrevStep()
+    }
+  }, [isFirstStep, router, goToPrevStep])
 
   const goToStep = useCallback((step: number): void => {
     if (step < 0 || step >= steps.length || (!allowSkipSteps && step > currentStep)) return
@@ -564,28 +581,43 @@ export function MultiStepFormWrapper<T extends FormData = FormData>({
   return (
     <div className={cn("w-full h-full min-h-dvh flex flex-col max-w-none md:max-w-2xl md:mx-auto", className)}>
       <MultiStepFormContext.Provider value={contextValue as MultiStepFormContextType}>
-        {/* Header with title, description and logo */}
-        {(showStepTitle && (title || description)) || logo ? (
+        {/* Header with back button, title, description and logo */}
+        {showBackButton || (showStepTitle && (title || description)) || logo ? (
           <div className="p-4 md:p-6 pb-2 md:pb-4">
-            <div className="flex justify-between items-start">
-              <div className="flex-1 min-w-0">
-                {title && <h2 className="text-xl md:text-2xl font-bold dark:text-white truncate">{title}</h2>}
-                {description && <p className="text-gray-500 dark:text-gray-400 mt-1 text-xs md:text-sm">{description}</p>}
+            {/* Title, description and logo row with back button beside title */}
+            {((showStepTitle && (title || description)) || logo) && (
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {/* Back button beside title */}
+                  {showBackButton && (
+                    <Button
+                      variant="ghost"
+                      size={'icon-lg'}
+                      onClick={handleBackButton}
+                    >
+                      <ArrowLeftIcon size={10} className="w-full" />
+                    </Button>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    {title && <h2 className="text-xl md:text-2xl font-bold dark:text-white truncate">{title}</h2>}
+                    {description && <p className="text-gray-500 dark:text-gray-400 mt-1 text-xs md:text-sm">{description}</p>}
+                  </div>
+                </div>
+                <div className="flex items-center justify-center ml-4 flex-shrink-0">
+                  {logo && <div className="w-16 h-16 md:w-20 md:h-20">{logo}</div>}
+                  {allowStepReset && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetForm}
+                      className="text-gray-500 hover:text-gray-700 ml-2"
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center justify-center ml-4 flex-shrink-0">
-                {logo && <div className="w-16 h-16 md:w-20 md:h-20">{logo}</div>}
-                {allowStepReset && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetForm}
-                    className="text-gray-500 hover:text-gray-700 ml-2"
-                  >
-                    Reset
-                  </Button>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         ) : null}
 

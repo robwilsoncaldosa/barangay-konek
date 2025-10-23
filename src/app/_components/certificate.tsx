@@ -8,6 +8,9 @@ import {
   updateCertificate,
   deleteCertificate,
 } from '@/server/certificate'
+import type { Database } from '../../../database.types'
+
+type Certificate = Database['public']['Tables']['mCertificate']['Row']
 
 type CertificateParams = {
   id: number
@@ -52,7 +55,15 @@ export default function CertificatePage() {
   const fetchCertificates = async () => {
     try {
       const data = await getCertificates()
-      setCertificates(data)
+      setCertificates(
+        data.map((item: Certificate) => ({
+          id: item.id,
+          name: item.name,
+          fee: item.fee ?? 0,
+          requirements: item.requirements ?? '',
+          processing_time: item.processing_time ?? '',
+        }))
+      )
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       setError(message)

@@ -1,35 +1,38 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import UserTable from "../admin/_components/user-table";
-import Navbar from "../_components/navbar";
-import CertificatePage from "../_components/certificate";
-import Request from "../_components/request";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { DashboardLayout } from "@/components/dashboard-layout";
 
+export default async function OfficialPage() {
+  const headersList = await headers();
+  const userDataHeader = headersList.get('x-user-data');
 
-export default function OfficialPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  if (!userDataHeader) {
+    redirect('/official/login');
+  }
 
-  useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (!user) {
-      router.push("/official/login"); // not logged in → redirect to login
-      return;
-    }
-    const userType = JSON.parse(user).user_type;
-    if (userType !== "official") {
-      router.push("/official/login"); // wrong role → redirect to login
-      return;
-    }
-    setLoading(false);
-  }, []);
+  let user;
+  try {
+    user = JSON.parse(userDataHeader);
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+    redirect('/official/login');
+  }
 
-  if (loading) return <p>Loading...</p>;
+  // Ensure user has official access
+  if (user.user_type !== 'official') {
+    redirect('/official/login');
+  }
 
-  return (<><h1>Welcome Official!</h1>      <Navbar />
-    <UserTable userType="resident" />
-    <CertificatePage />
-    <Request />
-  </>);
+  return (
+    <DashboardLayout user={user} title="Official Panel">
+      <div className="container mx-auto px-4">
+        <h1 className="text-3xl font-bold mb-8">Welcome Official!</h1>
+        <div className="space-y-8">
+          <p className="text-muted-foreground">
+            Official dashboard content will be added here.
+          </p>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
 }

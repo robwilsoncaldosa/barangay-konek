@@ -20,7 +20,7 @@ export interface AuthUser {
   }
 }
 
-export async function getUser(): Promise<{ success: boolean; data?: any; message?: string }> {
+export async function getUser(): Promise<{ success: boolean; data?: AuthUser | null; message?: string }> {
   try {
     const { cookies } = await import("next/headers");
     const cookieStore = await cookies();
@@ -48,9 +48,9 @@ export async function getUser(): Promise<{ success: boolean; data?: any; message
     } catch {
       throw new Error("Invalid or corrupted authentication cookie.");
     }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unexpected error";
-    return { success: false, message };
+  } catch (error) {
+    console.error("Error getting user:", error);
+    return { success: false, message: "Failed to get user" };
   }
 }
 
@@ -62,6 +62,7 @@ export async function getUserById(userId: number): Promise<User | null> {
       .from('mUsers')
       .select('*')
       .eq('id', userId)
+      .eq('del_flag', 0)
       .single()
 
     if (error) {
@@ -83,6 +84,7 @@ export async function getUsersByType(userType: 'official' | 'resident' = 'offici
       .from('mUsers')
       .select('*')
       .eq('user_type', userType)
+      .eq('del_flag', 0)
       .order('id', { ascending: true })
 
     if (error) {
@@ -270,21 +272,20 @@ export async function updateUser(
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
                 Dear ${data.first_name || "User"},
               </p>
-              ${
-                isApproved
-                  ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+              ${isApproved
+          ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
                       We are pleased to inform you that your <b>Barangay Konek</b> account has been <b>approved</b>.
                     </p>
                     <p style="color: #374151; font-size: 15px; line-height: 1.6;">
                       You can now log in and access all available features.
                     </p>`
-                  : `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+          : `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
                       We regret to inform you that your <b>Barangay Konek</b> registration has been <b>rejected</b>.
                     </p>
                     <p style="color: #374151; font-size: 15px; line-height: 1.6;">
                       If you believe this was an error, please contact your Barangay Office for assistance.
                     </p>`
-              }
+        }
               <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
                 Best regards,<br/>
                 <strong>Barangay Konek Team</strong>
@@ -317,11 +318,11 @@ export async function updateUser(
 export async function deleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
-    
+
     // Soft delete by setting del_flag to 1
     const { error } = await supabase
       .from('mUsers')
-      .update({ 
+      .update({
         del_flag: 1,
         updated_at: new Date().toISOString()
       })

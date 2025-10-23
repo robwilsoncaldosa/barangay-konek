@@ -1,0 +1,143 @@
+"use client"
+
+import * as React from "react"
+import Link from "next/link"
+import {
+  LayoutDashboard,
+  Users,
+  ClipboardList,
+  FileText,
+  UserCheck,
+  Settings,
+  Building,
+  Home,
+  LogOut,
+  User,
+} from "lucide-react"
+
+import { NavMain } from "@/components/nav-main"
+import { NavSecondary } from "@/components/nav-secondary"
+import { NavUser } from "@/components/nav-user"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar"
+import type { Database } from "../../database.types"
+
+type User = Database['public']['Tables']['mUsers']['Row']
+
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user?: User
+}
+
+// Get navigation items based on user type
+const getNavigationItems = (userType: string) => {
+  const isDev = process.env.NODE_ENV === 'development'
+
+  if (isDev) {
+    // In development, show all navigation items for testing
+    return [
+      { title: "Admin Dashboard", url: "/admin", icon: LayoutDashboard },
+      { title: "Official Dashboard", url: "/official", icon: Building },
+      { title: "Resident Dashboard", url: "/resident", icon: Home },
+      { title: "Users", url: "/admin/users", icon: Users },
+      { title: "Requests", url: "/admin/requests", icon: ClipboardList },
+      { title: "Certificates", url: "/admin/certificates", icon: FileText },
+      { title: "Officials", url: "/admin/officials", icon: UserCheck },
+    ]
+  }
+
+  // Production navigation based on user type
+  switch (userType) {
+    case "super_admin":
+      return [
+        { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+        { title: "Users", url: "/admin/users", icon: Users },
+        { title: "Requests", url: "/admin/requests", icon: ClipboardList },
+        { title: "Certificates", url: "/admin/certificates", icon: FileText },
+        { title: "Officials", url: "/admin/officials", icon: UserCheck },
+      ]
+    case "official":
+      return [
+        { title: "Dashboard", url: "/official", icon: LayoutDashboard },
+        { title: "Requests", url: "/official/requests", icon: ClipboardList },
+        { title: "Certificates", url: "/official/certificates", icon: FileText },
+      ]
+    case "resident":
+      return [
+        { title: "Dashboard", url: "/resident", icon: LayoutDashboard },
+        { title: "My Requests", url: "/resident/requests", icon: ClipboardList },
+        { title: "My Certificates", url: "/resident/certificates", icon: FileText },
+        { title: "Profile", url: "/resident/profile", icon: User },
+      ]
+    default:
+      return []
+  }
+}
+
+const getSecondaryNavItems = (userType: string) => {
+  const commonItems = [
+    {
+      title: "Settings",
+      url: userType === "super_admin" ? "/admin/settings" : 
+           userType === "official" ? "/official/settings" : "/resident/settings",
+      icon: Settings,
+    },
+  ]
+
+  if (userType === "super_admin") {
+    return [
+      ...commonItems,
+      {
+        title: "System Settings",
+        url: "/admin/system",
+        icon: Settings,
+      },
+    ]
+  }
+
+  return commonItems
+}
+
+export function AppSidebar({ user, ...props }: AppSidebarProps) {
+  const navigationItems = user ? getNavigationItems(user.user_type) : []
+  const secondaryItems = user ? getSecondaryNavItems(user.user_type) : []
+
+  return (
+    <Sidebar variant="inset" {...props}>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <Link href="/">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <LayoutDashboard className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">Barangay Konek</span>
+                  <span className="truncate text-xs">
+                    {user?.user_type === "super_admin" ? "Admin Panel" :
+                     user?.user_type === "official" ? "Official Panel" :
+                     user?.user_type === "resident" ? "Resident Portal" : "Dashboard"}
+                  </span>
+                </div>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <NavMain items={navigationItems} />
+        <NavSecondary items={secondaryItems} className="mt-auto" />
+      </SidebarContent>
+      <SidebarFooter>
+        {user && <NavUser user={user} />}
+      </SidebarFooter>
+    </Sidebar>
+  )
+}

@@ -48,30 +48,27 @@ export async function getRequests(filters?: {
     if (!requests) return []
 
     // Fetch users for resident_ids
-    const residentIds = [...new Set(requests.map((r: Request) => r.resident_id))]
-    const { data: users, error: usersError } = await supabase
+    const residentIds = [...new Set(requests.map(req => req.resident_id))]
+    const { data: users, error: userError } = await supabase
       .from('mUsers')
       .select('id, email')
       .in('id', residentIds)
 
-    if (usersError) {
-      console.error('Error fetching users:', usersError)
-      return requests.map(request => ({
-        ...request,
-        resident_email: 'Unknown'
-      }))
+    if (userError) {
+      console.error('Error fetching users:', userError)
+      return []
     }
 
-    // Map users to requests
-    const requestsWithUsers = requests.map((request: Request) => {
-      const user = users?.find((u: Pick<User, 'id' | 'email'>) => u.id === request.resident_id)
+    // Map requests with user emails
+    const requestsWithUser: RequestWithUser[] = requests.map(request => {
+      const user = users?.find(u => u.id === request.resident_id)
       return {
         ...request,
         resident_email: user?.email || 'Unknown'
       }
     })
 
-    return requestsWithUsers
+    return requestsWithUser
   } catch (error) {
     console.error('Unexpected error:', error)
     return []
@@ -108,14 +105,13 @@ export async function createRequest(
       mCertificateId: requestData.mCertificateId,
       resident_id: requestData.resident_id,
       purpose: requestData.purpose,
-      document_type: requestData.document_type || '',
-      request_date: requestData.request_date || new Date().toISOString().split('T')[0],
-      priority: requestData.priority || 'Normal',
+      document_type: requestData.document_type,
+      request_date: requestData.request_date,
+      priority: requestData.priority,
       status: 'pending',
-      payment_status: 'unpaid',
-      del_flag: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      del_flag: 0
     }
 
     const { data, error } = await supabase
@@ -360,8 +356,9 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
     }
 
     return { success: true, data }
-  } catch (err: any) {
+  } catch (err) {
     console.error('Unexpected error in completeRequestWithFile:', err)
-    return { success: false, error: err.message || 'Unexpected error occurred' }
+    const message = err instanceof Error ? err.message : 'Unexpected error occurred'
+    return { success: false, error: message }
   }
 }

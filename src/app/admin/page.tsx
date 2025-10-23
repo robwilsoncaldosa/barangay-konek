@@ -1,36 +1,39 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Navbar from "../_components/navbar"; // matches the file exactly
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { DashboardLayout } from "@/components/dashboard-layout";
 import Officials from "./_components/officials";
 import Residents from "./_components/residents";
 
-export default function AdminPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
+export default async function AdminPage() {
+  const headersList = await headers();
+  const userDataHeader = headersList.get('x-user-data');
 
-  useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (!user) {
-      router.push("/admin/login"); // not logged in → redirect to login
-      return;
-    }
-    const userType = JSON.parse(user).user_type;
-    if (userType !== "super_admin") {
-      router.push("/admin/login"); // wrong role → redirect to login
-      return;
-    }
-    setLoading(false);
-  }, []);
+  if (!userDataHeader) {
+    redirect('/admin/login');
+  }
 
-  if (loading) return <p>Loading...</p>;
+  let user;
+  try {
+    user = JSON.parse(userDataHeader);
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+    redirect('/admin/login');
+  }
+
+  // Ensure user has admin access
+  if (user.user_type !== 'super_admin') {
+    redirect('/admin/login');
+  }
 
   return (
-    <>
-      <h1>Welcome Super Admin!</h1>
-      <Navbar />
-      <Officials />
-      <Residents />
-    </>
+    <DashboardLayout user={user} title="Admin Panel">
+      <div className="container mx-auto px-4">
+        <h1 className="text-3xl font-bold mb-8">Welcome Super Admin!</h1>
+        <div className="space-y-8">
+          <Officials />
+          <Residents />
+        </div>
+      </div>
+    </DashboardLayout>
   );
 }

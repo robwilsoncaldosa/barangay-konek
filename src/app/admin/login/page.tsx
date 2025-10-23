@@ -72,11 +72,10 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-2 rounded-lg text-white font-medium transition ${
-              loading
-                ? "bg-blue-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
+            className={`w-full py-2 rounded-lg text-white font-medium transition ${loading
+              ? "bg-blue-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+              }`}
           >
             {loading ? "Logging in..." : "Log In"}
           </button>
@@ -84,13 +83,12 @@ export default function AdminLogin() {
 
         {message && (
           <p
-            className={`mt-4 text-center text-sm ${
-              message.startsWith("❌")
-                ? "text-red-600"
-                : message.startsWith("✅")
+            className={`mt-4 text-center text-sm ${message.startsWith("❌")
+              ? "text-red-600"
+              : message.startsWith("✅")
                 ? "text-green-600"
                 : "text-gray-700"
-            }`}
+              }`}
           >
             {message}
           </p>
