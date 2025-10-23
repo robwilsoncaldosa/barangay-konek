@@ -12,10 +12,10 @@ export function LoginLinks() {
       <div className="text-muted-foreground">
          Don&apos;t have an account?{' '}
          <Link 
-           href="/register" 
+           href="/role-selection" 
            className="text-primary hover:text-primary/80 font-medium transition-colors duration-200"
          >
-           Register Resident
+           Sign up
          </Link>
        </div>
     </div>
