@@ -4,6 +4,7 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import Link from "next/link"
+import { ArrowLeftIcon } from "lucide-react"
 
 export default function ThankYouPage() {
   return (
@@ -13,7 +14,7 @@ export default function ThankYouPage() {
         <div className="flex justify-center">
           <div className="w-40 h-40 md:w-48 md:h-48">
             <Image
-              src="/temp-logo2.png"
+              src="/logo.png"
               alt="Barangay Logo"
               width={160}
               height={160}
@@ -50,21 +51,22 @@ export default function ThankYouPage() {
         </div>
 
         {/* Message */}
-        <div className="space-y-2 text-center">
-          <p className="text-gray-800 text-base font-medium leading-relaxed">
-            Your forms have been received.
-          </p>
-          <p className="text-gray-800 text-base font-medium">
-            Thank you.
+        <div className="space-y-4 text-center max-w-md">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            Thank you for registering!
+          </h1>
+          <p className="text-muted-foreground leading-relaxed">
+            Welcome to the community! Your registration was successful. We&apos;ve sent a confirmation email with your login details and next steps. An official will review your application and approve your account shortly.
           </p>
         </div>
       </div>
 
       {/* CTA Button at bottom with padding */}
-      <div className="w-full max-w-sm mx-auto pb-8">
-        <Link href="/" className="w-full">
-          <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium">
-            End
+      <div className="w-full max-w-sm mx-auto pb-8 space-y-2">
+        <Link href="/dashboard" className="w-full">
+          <Button variant={"outline"} className="w-full  py-6 rounded-lg font-medium flex items-center justify-center">
+            <ArrowLeftIcon className="w-5 h-5 mr-2" />
+            Go to Dashboard
           </Button>
         </Link>
       </div>
