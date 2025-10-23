@@ -2,205 +2,180 @@
 
 <h1>Barangay Konek</h1>
 
-<p>Designed for transparency. Built for communities. Secured by blockchain.</p>
+**Designed for transparency. Built for communities. Secured by blockchain.**
 
-<p>
-  <a href="https://github.com/othneildrew/Best-README-Template"><strong>Explore the docs »</strong></a>
-  <br />
-  <a href="https://github.com/othneildrew/Best-README-Template">View Demo</a>
-  &nbsp;·&nbsp;
-  <a href="https://github.com/othneildrew/Best-README-Template/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
-  &nbsp;·&nbsp;
-  <a href="https://github.com/othneildrew/Best-README-Template/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
-</p>
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Status](https://img.shields.io/badge/status-active-success.svg)
 
-<p>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-  <img src="https://img.shields.io/badge/status-active-success.svg" alt="Status">
-</p>
+[📘 Explore Docs »](./docs/development-guidelines.md) ·
+[🐞 Report Bug](https://github.com/barangay-konek/barangay-konek/issues/new?labels=bug&template=bug-report---.md) ·
+[💡 Request Feature](https://github.com/barangay-konek/barangay-konek/issues/new?labels=enhancement&template=feature-request---.md)
 
 </div>
 
 ---
 
-**Barangay Konek** is an open-source digital governance platform that bridges local governance and technology through **Next.js**, **Supabase**, and **Blockchain**.  
-It empowers barangays and their residents with a secure, transparent, and decentralized system for document requests, record management, and blockchain-verified certificates.
-
 ## 📖 Table of Contents
 
-- [Overview](#-overview)
-- [Core Features](#-core-features)
-- [Tech Stack](#-tech-stack)
-- [Architecture Overview](#-architecture-overview)
-- [Development Guidelines](#-development-guidelines)
-- [Project Structure](#-project-structure)
-- [Setup & Installation](#-setup--installation)
-- [Environment Variables](#-environment-variables)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Community](#-community)
-- [Acknowledgements](#-acknowledgements)
+* [Overview](#-overview)
+* [Core Features](#-core-features)
+* [Tech Stack](#-tech-stack)
+* [System Architecture](#-system-architecture)
+* [Impact & Technology Use](#-impact--technology-use)
+* [Development Guidelines](#-development-guidelines)
+* [Project Structure](#-project-structure)
+* [Setup & Installation](#-setup--installation)
+* [Environment Variables](#-environment-variables)
+* [Updating Documentation](#-updating-documentation)
+* [Contributing](#-contributing)
+* [Code of Conduct](#-code-of-conduct)
+* [License](#-license)
+* [Community](#-community)
+* [Acknowledgements](#-acknowledgements)
+* [Roadmap](#-roadmap)
 
 ---
 
 ## 🌍 Overview
 
-Barangay Konek aims to **digitize barangay operations** by enabling residents to submit, track, and verify their document requests online — while empowering barangay officials to manage approvals efficiently.  
-All issued certificates are **blockchain-verified**, ensuring authenticity and transparency across the process.
+**Barangay Konek** is an open-source digital governance platform that bridges **local governance** and **technology** using **Next.js**, **Supabase**, and **Blockchain**.
+
+It empowers barangays and residents with a secure, transparent, and decentralized system for:
+
+* Submitting and tracking requests online
+* Managing approvals by officials
+* Issuing blockchain-verified barangay certificates
 
 ### 🎯 Core Objectives
-- Digitize barangay processes such as clearance, residency, and indigency certificates  
-- Provide residents with real-time request tracking  
-- Enable blockchain-secured certificate issuance  
-- Simplify records management for officials  
-- Promote transparency and accountability through open-source technology  
+
+* Digitize barangay processes (clearance, residency, indigency)
+* Provide residents real-time tracking of requests
+* Issue blockchain-secured and verifiable documents
+* Simplify administrative operations for officials
+* Promote transparency and trust through open-source technology
 
 ---
 
 ## ⚙️ Core Features
 
-| Category | Description |
-|-----------|-------------|
-| 🧾 **Resident Portal** | Request, track, and download barangay certificates |
-| 🧑‍💼 **Official Dashboard** | Manage, approve, and issue requests digitally |
-| 🔗 **Blockchain Integration** | Verifiable certificates stored on-chain |
-| 🔒 **Secure Authentication** | Supabase Auth with role-based access |
-| 🧠 **Server-Side First** | All sensitive logic handled securely on the server |
-| 🎨 **Unified Design System** | Consistent UI via Tailwind CSS + shadcn/ui |
+| Category                      | Description                                          |
+| ----------------------------- | ---------------------------------------------------- |
+| 🧾 **Resident Portal**        | Request, track, and download barangay certificates   |
+| 🧑‍💼 **Official Dashboard**  | Manage, approve, and issue requests digitally        |
+| 🔗 **Blockchain Integration** | Blockchain-based certificate verification            |
+| 🔒 **Secure Authentication**  | Role-based access using Supabase Auth                |
+| 🧠 **Server-Side First**      | All sensitive logic processed securely on the server |
+| 🎨 **Unified Design System**  | Tailwind CSS + shadcn/ui for consistent UI           |
 
 ---
 
 ## 🧩 Tech Stack
 
-| Layer | Technology |
-|-------|-------------|
-| **Framework** | [Next.js 14+ (App Router)](https://nextjs.org) |
-| **UI System** | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) |
-| **Backend & Database** | [Supabase](https://supabase.com) |
-| **Blockchain Layer** | [Ethereum / Lisk Testnet](https://lisk.com) |
-| **Language** | TypeScript |
-| **Auth System** | Supabase Auth |
-| **Package Manager** | pnpm |
+| Layer                  | Technology                                                                   |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| **Framework**          | [Next.js 14+ (App Router)](https://nextjs.org)                               |
+| **UI System**          | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) |
+| **Backend & Database** | [Supabase](https://supabase.com)                                             |
+| **Blockchain Layer**   | [Ethereum / Lisk Testnet](https://lisk.com)                                  |
+| **Language**           | TypeScript                                                                   |
+| **Auth System**        | Supabase Auth                                                                |
+| **Package Manager**    | pnpm                                                                         |
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ System Architecture
 
-Barangay Konek follows a **Server-Side First Architecture**, ensuring secure data handling and a clear separation between presentation and business logic.
+### 🔹 High-Level Overview
+
+Barangay Konek adopts a **Server-Side First Architecture** ensuring data security and separation of responsibilities.
 
 ```
-
 BARANGAY-KONEK/
-├── .next/
-├── .source/
-├── blockchain/
-├── content/
-│   └── docs/
-│       ├── api/
-│       ├── blockchain/
-│       ├── development/
-│       ├── features/
-│       └── user-guides/
-├── node_modules/
-├── public/
-├── src/
-│   └── app/
-│       ├── (resident)/
-│       │   ├── requests/
-│       │   ├── certificates/
-│       │   └── dashboard/
-│       ├── (official)/
-│       │   ├── requests/
-│       │   ├── certificates/
-│       │   └── dashboard/
-│       └── api/
-│           └── blockchain/
-├── server/
-│   ├── auth/
-│   ├── certificate/
-│   ├── request/
-│   └── user/
-└── lib/
-    ├── utils/
-    ├── schemas/
-    ├── supabase/
-    └── constants/
-
+├── src/app/                 # Next.js App Router (Resident & Official views)
+│   ├── (resident)/          # Resident pages: requests, certificates, dashboard
+│   ├── (official)/          # Official pages: requests, certificates, dashboard
+│   └── api/blockchain/      # Blockchain interaction endpoints
+├── server/                  # Business logic: auth, request, certificate
+├── lib/                     # Utilities, schemas, Supabase config, constants
+├── content/docs/            # Developer & user documentation
+└── blockchain/              # Smart contract and blockchain interaction logic
 ```
+### 🔹 Component Responsibilities
 
-### 💡 Design Principles
+| Component        | Responsibility                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------- |
+| `app/(resident)` | UI for residents to **submit**, **track**, and **download** barangay document requests                      |
+| `app/(official)` | Dashboard for barangay officials to **review**, **approve**, and **issue** certificates                     |
+| `app/(admin)`    | Admin console for managing **users**, **roles**, **system configurations**, and **global reports**          |
+| `server/`        | Core backend logic — handles **authentication**, **requests**, **blockchain sync**, and **data processing** |
+| `lib/`           | Shared **utilities**, **validation schemas**, and **constants** for client/server integration               |
+| `blockchain/`    | Smart contract and **on-chain verification** of barangay-issued certificates                                |
+| `content/docs/`  | Developer and **user documentation**, including guides and architectural references                         |
+| `public/`        | Static assets like images, icons, and metadata used across the site                                         |
 
-1. **Server-Side First** — all sensitive logic runs on the server  
-2. **Single Responsibility** — one purpose per file  
-3. **Strict Type Safety** — every function and schema validated with TypeScript + Zod  
-4. **No Inline Styles** — design system only via Tailwind variables  
-5. **Reusable UI Components** — built from shadcn/ui foundations  
+---
+
+## 🌐 Impact & Technology Use
+
+Barangay Konek effectively leverages **modern open-source technologies** to promote **digital transparency** in local governance.
+
+| Technology               | Effective Use                                                               |
+| ------------------------ | --------------------------------------------------------------------------- |
+| **Next.js**              | Enables fast, server-side rendered interfaces for residents and officials   |
+| **Supabase**             | Provides authentication, real-time data sync, and secure PostgreSQL backend |
+| **Blockchain**           | Ensures tamper-proof verification of barangay certificates                  |
+| **Tailwind + shadcn/ui** | Maintains design consistency and responsive layouts                         |
+| **TypeScript + Zod**     | Guarantees strict type safety and predictable data validation               |
 
 ---
 
 ## 🧱 Development Guidelines
 
-To ensure maintainability and consistency across contributors, Barangay Konek enforces the following conventions:
+To maintain consistency:
 
-1. **Server logic →** inside `/server`  
-2. **UI logic →** inside `/app/(role)/_components`  
-3. **Shared utilities →** inside `/lib`  
-4. **Always check existing logic** before creating new ones  
-5. **Use Tailwind variables** like `text-primary`, `bg-surface`, etc.  
-6. **No inline, external, or internal CSS**  
-7. **Prefer SSR (Server-Side Rendering)** over CSR  
+1. **Server logic →** `/server`
+2. **UI logic →** `/app/(role)/_components`
+3. **Shared utilities →** `/lib`
+4. **Use Tailwind tokens**, avoid inline CSS
+5. **Prefer SSR over CSR**
+6. **One responsibility per file**
 
-📘 For full details, see:  
-[`docs/development-guidelines.md`](./docs/development-guidelines.md)
+📘 Full guide: [docs/development-guidelines.md](./docs/development-guidelines.md)
 
 ---
 
 ## 📂 Project Structure
 
 ```
-
 barangay-konek/
-├── app/                # Next.js App Router pages
-├── server/             # Supabase & blockchain logic
-├── lib/                # Shared utilities and schemas
-├── components/         # Shared UI components
-├── public/             # Static assets
-├── docs/               # Developer documentation
-├── .env.local.example  # Sample environment file
+├── app/                # Next.js routes
+├── server/             # API & logic
+├── lib/                # Utilities & schemas
+├── components/         # Shared components
+├── docs/               # Documentation files
+├── public/             # Assets
 └── README.md
-
-````
+```
 
 ---
 
 ## 🧰 Setup & Installation
 
-### 1️⃣ Clone Repository
-
 ```bash
+# 1️⃣ Clone Repository
 git clone https://github.com/barangay-konek/barangay-konek.git
 cd barangay-konek
-````
 
-### 2️⃣ Install Dependencies
-
-```bash
+# 2️⃣ Install Dependencies
 pnpm install
-```
 
-### 3️⃣ Setup Environment
+# 3️⃣ Setup Environment
+cp .env.local.example .env.local
 
-Copy `.env.local.example` → `.env.local` and update the credentials.
-
-### 4️⃣ Run Development Server
-
-```bash
+# 4️⃣ Run Development Server
 pnpm dev
-```
 
-### 5️⃣ Build for Production
-
-```bash
+# 5️⃣ Build for Production
 pnpm build && pnpm start
 ```
 
@@ -208,72 +183,113 @@ pnpm build && pnpm start
 
 ## 🔑 Environment Variables
 
-| Variable                          | Description                                  |
-| --------------------------------- | -------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`        | Supabase project URL                         |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`   | Supabase public anon key                     |
-| `SUPABASE_SERVICE_ROLE_KEY`       | Supabase admin service key                   |
-| `NEXT_PUBLIC_SEPOLIA_RPC_URL`     | Blockchain RPC endpoint                      |
-| `NEXT_PUBLIC_SEPOLIA_PRIVATE_KEY` | Private key for blockchain wallet            |
-| `NEXT_PUBLIC_BLOCKCHAIN_CONTRACT` | Smart contract address                       |
-| `NEXT_PUBLIC_SITE_URL`            | Base site URL (e.g. localhost or production) |
+| Variable | Description |
+| :--- | :--- |
+| **Supabase & Backend** | |
+| `NEXT_PUBLIC_SUPABASE_URL` | The **public** URL for your Supabase project instance. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | The **public** anonymous key for client-side Supabase access. |
+| `SUPABASE_SERVICE_ROLE_KEY` | The **private** Service Role Key for administrative backend access. |
+| **Blockchain (Sepolia)** | |
+| `NEXT_PUBLIC_SEPOLIA_RPC_URL` | The **public** RPC endpoint (e.g., Alchemy/Infura) for the Sepolia testnet or target EVM chain. |
+| `NEXT_PUBLIC_SEPOLIA_PRIVATE_KEY` | The **private** key for the deployment or transaction signing wallet. |
+| `NEXT_PUBLIC_CHAIN_ID` | The **public** numeric ID for the target blockchain network (e.g., `11155111` for Sepolia). |
+| `NEXT_PUBLIC_CONTRACT_ADDRESS` | The **public** address of your deployed smart contract. |
+| **Email/SMTP** | |
+| `NEXT_PUBLIC_SMTP_HOST` | The SMTP server host address for sending emails. |
+| `NEXT_PUBLIC_SMTP_PORT` | The SMTP server port (e.g., `587`). |
+| `NEXT_PUBLIC_SMTP_USER` | The username/email used to authenticate with the SMTP server. |
+| `NEXT_PUBLIC_SMTP_PASS` | The password or API key for SMTP server authentication. |
+| **AI (Gemini)** | |
+| `GEMINI_API_KEY` | Your **private** API key for authenticating with the Gemini API. |
+| `GEMINI_API_URL` | The base URL for the Gemini API endpoint (optional, usually default). |
+| `GEMINI_MODEL` | The specific Gemini model identifier to be used (e.g., `gemini-2.5-flash`). |
 
+---
 ⚠️ **Note:** Never commit `.env.local` files to version control.
+
+## 📝 Updating Documentation
+
+To keep documentation accurate:
+
+1. Update `.md` files in `/docs/`
+2. Follow the style of `docs/development-guidelines.md`
+3. Run:
+
+```bash
+pnpm format-docs
+```
+
+4. Submit changes via Pull Request with tag:
+   `docs: update documentation`
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Help improve Barangay Konek by fixing bugs, improving documentation, or building new features.
+Contributions are **highly welcome!**
+Follow these steps:
 
-### Steps to Contribute
-
-1. **Fork** the repository
-2. **Create a new branch**
+1. **Fork** the repo
+2. **Create a branch**
 
    ```bash
    git checkout -b feature/your-feature
    ```
-3. **Commit your changes**
+3. **Commit changes**
 
    ```bash
-   git commit -m "feat: add blockchain verification for certificates"
+   git commit -m "feat: add blockchain certificate verification"
    ```
-4. **Push to your fork**
+4. **Push & Create PR**
 
    ```bash
    git push origin feature/your-feature
    ```
-5. **Submit a Pull Request**
 
-For details, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for full contribution rules.
+
+---
+
+## 📜 Code of Conduct
+
+We are committed to fostering a welcoming and respectful environment.
+Please read our [Code of Conduct](./CODE_OF_CONDUCT.md) before contributing.
+
+---
+
+## ⚖️ License
+
+This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for details.
 
 ---
 
 ## 💬 Community
 
-* 💻 GitHub Issues: [Report bugs or request features](https://github.com/barangay-konek/barangay-konek/issues)
-* 🧠 Discussions: [Join the conversation](https://github.com/barangay-konek/barangay-konek/discussions)
-* 🌐 Website: Coming Soon
+* 💻 [GitHub Issues](https://github.com/barangay-konek/barangay-konek/issues)
+* 🧠 [Discussions](https://github.com/barangay-konek/barangay-konek/discussions)
+* 🌐 Website: *Coming Soon*
 
 ---
 
 ## 🙏 Acknowledgements
 
 * Built with ❤️ by open-source contributors
-* Powered by [Next.js](https://nextjs.org), [Supabase](https://supabase.com), and [Lisk Blockchain](https://lisk.com)
-* Inspired by the vision of transparent and efficient local governance
+* Powered by **Next.js**, **Supabase**, and **Lisk Blockchain**
+* Inspired by the vision of transparent and efficient governance
 
 ---
 
 ## 🚀 Roadmap
 
-* ✅ Blockchain integration for certificate verification
+* ✅ Blockchain verification for certificates
 * ✅ Resident & official dashboards
 * ✅ Role-based access system
-* 🔜 Barangay analytics and statistics
-* 🔜 Mobile responsiveness and offline support
-* 🔜 Barangay-to-city digital linkage
+* 🔜 Analytics & statistics
+* 🔜 Mobile responsiveness and offline mode
+* 🔜 City-level data integration
 
 ---
-### 💡 “Empowering barangays through technology — one certificate at a time.”
+
+> 💡 *“Empowering barangays through technology — one certificate at a time.”*
+
+---
