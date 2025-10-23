@@ -22,7 +22,7 @@ interface CompleteRequestParams {
   tx_hash: string
 }
 
-export async function getRequests(filters?: {
+export async function GetRequests(filters?: {
   resident_id?: string
   status?: Pick<Request, 'status'>['status']
 }): Promise<RequestWithUser[]> {
@@ -78,7 +78,7 @@ export async function getRequests(filters?: {
   }
 }
 
-export async function getRequestById(requestId: string): Promise<Request | null> {
+export async function GetRequestById(requestId: string): Promise<Request | null> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -99,7 +99,7 @@ export async function getRequestById(requestId: string): Promise<Request | null>
   }
 }
 
-export async function createRequest(
+export async function CreateRequest(
   requestData: Pick<RequestInsert, 'mCertificateId' | 'resident_id' | 'purpose' | 'document_type' | 'request_date' | 'priority'>
 ): Promise<{ success: boolean; data?: Request; error?: string }> {
   try {
@@ -136,7 +136,7 @@ export async function createRequest(
   }
 }
 
-export async function updateRequestStatus(
+export async function UpdateRequestStatus(
   requestId: string,
   status: string,
   documentType?: string
@@ -168,7 +168,7 @@ export async function updateRequestStatus(
   }
 }
 
-export async function completeRequestWithDocument(
+export async function CompleteRequestWithDocument(
   requestId: string,
   email: string,
   fileBuffer: Buffer,
@@ -253,7 +253,7 @@ export async function completeRequestWithDocument(
   }
 }
 
-export async function deleteRequest(requestId: string): Promise<{ success: boolean; error?: string }> {
+export async function DeleteRequest(requestId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
 
@@ -278,7 +278,7 @@ export async function deleteRequest(requestId: string): Promise<{ success: boole
   }
 }
 
-export async function completeRequestWithFile({ requestId, email, file, tx_hash }: CompleteRequestParams) {
+export async function CompleteRequestWithFile({ requestId, email, file, tx_hash }: CompleteRequestParams) {
   try {
     // Save the file
     const uploadDir = path.join(process.cwd(), 'uploads')
@@ -360,8 +360,9 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
     }
 
     return { success: true, data }
-  } catch (err: any) {
+  } catch (err) {
     console.error('Unexpected error in completeRequestWithFile:', err)
-    return { success: false, error: err.message || 'Unexpected error occurred' }
+    const message = err instanceof Error ? err.message : 'Unexpected error occurred'
+    return { success: false, error: message }
   }
 }

@@ -20,7 +20,7 @@ export interface AuthUser {
   }
 }
 
-export async function getUser(): Promise<{ success: boolean; data?: any; message?: string }> {
+export async function GetUser(): Promise<{ success: boolean; data?: AuthUser | null; message?: string }> {
   try {
     const { cookies } = await import("next/headers");
     const cookieStore = await cookies();
@@ -55,7 +55,7 @@ export async function getUser(): Promise<{ success: boolean; data?: any; message
 }
 
 
-export async function getUserById(userId: number): Promise<User | null> {
+export async function GetUserById(userId: number): Promise<User | null> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -76,7 +76,7 @@ export async function getUserById(userId: number): Promise<User | null> {
   }
 }
 
-export async function getUsersByType(userType: 'official' | 'resident' = 'official'): Promise<User[]> {
+export async function GetUsersByType(userType: 'official' | 'resident' = 'official'): Promise<User[]> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -97,7 +97,7 @@ export async function getUsersByType(userType: 'official' | 'resident' = 'offici
   }
 }
 
-export async function createUser(
+export async function CreateUser(
   userData: Pick<
     UserInsert,
     | "first_name"
@@ -199,7 +199,7 @@ export async function createUser(
 }
 
 
-export async function updateUser(
+export async function UpdateUser(
   userId: string,
   userData: Pick<
     UserUpdate,
@@ -270,21 +270,20 @@ export async function updateUser(
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
                 Dear ${data.first_name || "User"},
               </p>
-              ${
-                isApproved
-                  ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+              ${isApproved
+          ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
                       We are pleased to inform you that your <b>Barangay Konek</b> account has been <b>approved</b>.
                     </p>
                     <p style="color: #374151; font-size: 15px; line-height: 1.6;">
                       You can now log in and access all available features.
                     </p>`
-                  : `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+          : `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
                       We regret to inform you that your <b>Barangay Konek</b> registration has been <b>rejected</b>.
                     </p>
                     <p style="color: #374151; font-size: 15px; line-height: 1.6;">
                       If you believe this was an error, please contact your Barangay Office for assistance.
                     </p>`
-              }
+        }
               <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
                 Best regards,<br/>
                 <strong>Barangay Konek Team</strong>
@@ -314,14 +313,14 @@ export async function updateUser(
   }
 }
 
-export async function deleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
+export async function DeleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
-    
+
     // Soft delete by setting del_flag to 1
     const { error } = await supabase
       .from('mUsers')
-      .update({ 
+      .update({
         del_flag: 1,
         updated_at: new Date().toISOString()
       })
@@ -339,7 +338,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; er
   }
 }
 
-export async function registerUser(
+export async function RegisterUser(
   userData: Pick<UserInsert, 'first_name' | 'last_name' | 'email' | 'password' | 'birthdate' | 'permanent_address' | 'permanent_barangay' | 'current_address' | 'current_barangay' | 'contact_no' | 'middle_name' | 'mbarangayid' | 'user_type'>
 ): Promise<{ success: boolean; data?: User; error?: string }> {
   try {
@@ -361,15 +360,15 @@ export async function registerUser(
       return { success: false, error: 'User with this email already exists' }
     }
 
-    // Create the user using existing createUser function (which now hashes password)
-    return await createUser(userData)
+    // Create the user using existing CreateUser function (which now hashes password)
+    return await CreateUser(userData)
   } catch (error) {
     console.error('Registration error:', error)
     return { success: false, error: 'Registration failed' }
   }
 }
 
-export async function handleUserRedirect(user: AuthUser | null) {
+export async function HandleUserRedirect(user: AuthUser | null) {
   if (!user) return
 
   const userType = user.user_metadata?.user_type

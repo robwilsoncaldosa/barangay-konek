@@ -7,7 +7,7 @@ type Certificate = Database['public']['Tables']['mCertificate']['Row']
 type CertificateInsert = Database['public']['Tables']['mCertificate']['Insert']
 type CertificateUpdate = Database['public']['Tables']['mCertificate']['Update']
 
-export async function getCertificates(): Promise<Certificate[]> {
+export async function GetCertificates(): Promise<Certificate[]> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -28,7 +28,7 @@ export async function getCertificates(): Promise<Certificate[]> {
   }
 }
 
-export async function getCertificateById(certificateId: string): Promise<Certificate | null> {
+export async function GetCertificateById(certificateId: string): Promise<Certificate | null> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -49,7 +49,7 @@ export async function getCertificateById(certificateId: string): Promise<Certifi
   }
 }
 
-export async function createCertificate(
+export async function CreateCertificate(
   certificateData: Pick<CertificateInsert, 'name' | 'requirements' | 'fee'>
 ): Promise<{ success: boolean; data?: Certificate; error?: string }> {
   try {
@@ -81,7 +81,7 @@ export async function createCertificate(
   }
 }
 
-export async function updateCertificate(
+export async function UpdateCertificate(
   certificateId: string, 
   certificateData: Pick<CertificateUpdate, 'name' | 'requirements' | 'fee'>
 ): Promise<{ success: boolean; data?: Certificate; error?: string }> {
@@ -111,7 +111,7 @@ export async function updateCertificate(
   }
 }
 
-export async function deleteCertificate(
+export async function DeleteCertificate(
   certificateId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
