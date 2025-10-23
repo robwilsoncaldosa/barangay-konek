@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getUsersByType, updateUser } from "@/server/user";
+import { GetUsersByType, UpdateUser } from "@/server/user";
 type User = {
     id: number;
     first_name: string;
@@ -44,7 +44,7 @@ const UserTable = ({ userType }: Props) => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const data = await getUsersByType(userType); // returns Supabase rows
+            const data = await GetUsersByType(userType); // returns Supabase rows
 
             // Map data to match frontend User type
             const mappedData: User[] = data.map(u => ({
@@ -105,18 +105,18 @@ const UserTable = ({ userType }: Props) => {
         else alert(result.message);
     };
 
-const handleEdit = async (id: number, status: "approved" | "rejected") => {
-  try {
-    const result = await updateUser(String(id), { sign_up_status: status });
-    if (result.success) {
-      fetchUsers();
-    } else {
-      alert(result.error || "Failed to update user status.");
-    }
-  } catch (err) {
-    console.error("Error updating user:", err);
-  }
-};
+    const handleEdit = async (id: number, status: "approved" | "rejected") => {
+        try {
+            const result = await UpdateUser(String(id), { sign_up_status: status });
+            if (result.success) {
+                fetchUsers();
+            } else {
+                alert(result.error || "Failed to update user status.");
+            }
+        } catch (err) {
+            console.error("Error updating user:", err);
+        }
+    };
 
 
     useEffect(() => { fetchUsers(); }, []);
