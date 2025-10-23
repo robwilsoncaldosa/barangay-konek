@@ -1,5 +1,5 @@
-import { getCertificates } from "@/server/certificate";
-import { getRequests } from "@/server/request";
+import { GetCertificates } from "@/server/certificate";
+import { GetRequests } from "@/server/request";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Navbar } from "@/components/ui/navbar";
@@ -26,12 +26,12 @@ export default async function ResidentPage() {
   const user = await getUserFromHeaders();
 
   // Fetch data server-side
-  const certificates = await getCertificates();
-  const requests = await getRequests({ resident_id: user.id.toString() });
+  const certificates = await GetCertificates();
+  const requests = await GetRequests({ resident_id: user.id.toString() });
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar 
+      <Navbar
         user={user}
         variant="default"
         position="sticky"

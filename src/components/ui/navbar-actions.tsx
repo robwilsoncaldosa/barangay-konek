@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
-  User,
   LogOut,
   Home,
   Menu,
@@ -22,7 +21,7 @@ import {
   Bell
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { logoutUser } from "@/server/auth"
+import { LogoutUser } from "@/server/auth"
 
 interface NavbarActionsProps {
   user: {
@@ -40,8 +39,8 @@ export function NavbarActions({ user, className }: NavbarActionsProps) {
   const handleLogout = async () => {
     try {
       // Use the server action instead of API call
-      const result = await logoutUser()
-      
+      const result = await LogoutUser()
+
       if (!result.success) {
         console.error('Logout error:', result.error)
       }

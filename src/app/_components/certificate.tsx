@@ -3,10 +3,10 @@
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  getCertificates,
-  createCertificate,
-  updateCertificate,
-  deleteCertificate,
+  GetCertificates,
+  CreateCertificate,
+  UpdateCertificate,
+  DeleteCertificate,
 } from '@/server/certificate'
 
 type CertificateParams = {
@@ -51,8 +51,16 @@ export default function CertificatePage() {
 
   const fetchCertificates = async () => {
     try {
-      const data = await getCertificates()
-      setCertificates(data)
+      const data = await GetCertificates()
+      setCertificates(
+        data.map((item) => ({
+          id: item.id,
+          name: item.name,
+          fee: item.fee ?? 0,
+          requirements: item.requirements ?? '',
+          processing_time: item.processing_time ?? '',
+        }))
+      )
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       setError(message)
@@ -64,7 +72,7 @@ export default function CertificatePage() {
   const handleDelete = (id: number) => {
     if (confirm('Are you sure you want to delete this certificate?')) {
       startTransition(async () => {
-        const res = await deleteCertificate(String(id))
+        const res = await DeleteCertificate(String(id))
         if (res.success) {
           setCertificates((prev) => prev.filter((c) => c.id !== id))
         } else {
@@ -108,7 +116,7 @@ export default function CertificatePage() {
 
       if (editingCert) {
         // update
-        const res = await updateCertificate(String(editingCert.id), payload)
+        const res = await UpdateCertificate(String(editingCert.id), payload)
         if (res.success) {
           setCertificates((prev) =>
             prev.map((c) =>
@@ -121,7 +129,7 @@ export default function CertificatePage() {
         }
       } else {
         // add new
-        const res = await createCertificate(payload)
+        const res = await CreateCertificate(payload)
         if (res.success && res.data) {
           const newCert = Array.isArray(res.data) ? res.data[0] : res.data
           setCertificates((prev) => [...prev, newCert])
