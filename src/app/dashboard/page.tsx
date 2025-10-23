@@ -3,6 +3,7 @@ import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable } from "@/components/data-table"
 import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
+import Chatbot from "@/components/ui/chats"
 import {
   SidebarInset,
   SidebarProvider,
@@ -12,6 +13,7 @@ import data from "./data.json"
 
 export default function Page() {
   return (
+    <>
     <SidebarProvider
       style={
         {
@@ -36,5 +38,8 @@ export default function Page() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+      <Chatbot />
+      </>
+   
   )
 }
