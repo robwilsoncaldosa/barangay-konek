@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Navbar } from "@/components/ui/navbar";
+import { DashboardLayout } from "@/components/dashboard-layout";
 import Officials from "./_components/officials";
 import Residents from "./_components/residents";
 
@@ -26,19 +26,14 @@ export default async function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar
-        user={user}
-        variant="default"
-        position="sticky"
-      />
-      <main className="container mx-auto px-4 py-8">
+    <DashboardLayout user={user} title="Admin Panel">
+      <div className="container mx-auto px-4">
         <h1 className="text-3xl font-bold mb-8">Welcome Super Admin!</h1>
         <div className="space-y-8">
           <Officials />
           <Residents />
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
