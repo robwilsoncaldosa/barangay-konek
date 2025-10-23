@@ -227,7 +227,7 @@ export function Navbar({
       {/* Actions Section */}
       <div className="flex items-center gap-2">
         <AnimatedThemeToggler
-          className="h-9 w-9 p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+          className="h-6 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
           aria-label="Toggle theme"
         />
         {customActions}
