@@ -1,59 +1,38 @@
-import { GetCertificates } from "@/server/certificate";
-import { GetRequests } from "@/server/request";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Navbar } from "@/components/ui/navbar";
-import ResidentForm from "./_components/resident-form";
-import RequestsTable from "./_components/requests-table";
+import { DashboardLayout } from "@/components/dashboard-layout";
 
-async function getUserFromHeaders() {
+export default async function ResidentPage() {
   const headersList = await headers();
   const userDataHeader = headersList.get('x-user-data');
 
   if (!userDataHeader) {
-    redirect('/login');
+    redirect('/resident/login');
   }
 
+  let user;
   try {
-    return JSON.parse(userDataHeader);
+    user = JSON.parse(userDataHeader);
   } catch (error) {
-    console.error('Error parsing user data from headers:', error);
-    redirect('/login');
+    console.error('Error parsing user data:', error);
+    redirect('/resident/login');
   }
-}
 
-export default async function ResidentPage() {
-  const user = await getUserFromHeaders();
-
-  // Fetch data server-side
-  const certificates = await GetCertificates();
-  const requests = await GetRequests({ resident_id: user.id.toString() });
+  // Ensure user has resident access
+  if (user.user_type !== 'resident') {
+    redirect('/resident/login');
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar
-        user={user}
-        variant="default"
-        position="sticky"
-      />
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Request Form */}
-          <div className="border rounded-lg shadow-sm p-6 bg-card">
-            <h1 className="text-2xl font-bold mb-4">Request a Certificate</h1>
-            <ResidentForm
-              certificates={certificates}
-              userId={user.id}
-            />
-          </div>
-
-          {/* Requests Table */}
-          <div className="border rounded-lg shadow-sm p-6 bg-card">
-            <h2 className="text-2xl font-bold mb-4">My Requests</h2>
-            <RequestsTable requests={requests} />
-          </div>
+    <DashboardLayout user={user} title="Resident Portal">
+      <div className="container mx-auto px-4">
+        <h1 className="text-3xl font-bold mb-8">Welcome Resident!</h1>
+        <div className="space-y-8">
+          <p className="text-muted-foreground">
+            Resident portal content will be added here.
+          </p>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
