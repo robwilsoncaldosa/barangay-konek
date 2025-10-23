@@ -110,9 +110,9 @@ export function Navbar({
     if (isDev) {
       // In development, show all navigation items for testing
       return [
-        { href: "/admin", label: "Admin Dashboard", icon: LayoutDashboard },
-        { href: "/official", label: "Official Dashboard", icon: Building },
-        { href: "/resident", label: "Resident Dashboard", icon: Home },
+        { href: "/admin", label: "Admin", icon: LayoutDashboard },
+        { href: "/official", label: "Official", icon: Building },
+        { href: "/resident", label: "Resident", icon: Home },
         { href: "/admin/users", label: "Users", icon: Users },
         { href: "/admin/requests", label: "Requests", icon: ClipboardList },
         { href: "/admin/certificates", label: "Certificates", icon: FileText },
@@ -207,7 +207,8 @@ export function Navbar({
                       href={item.href}
                       className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {item.label}
+                      {/* Icon + Label side-by-side */}
+                      <span>{item.label}</span>
                     </Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
