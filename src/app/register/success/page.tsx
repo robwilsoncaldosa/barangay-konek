@@ -13,11 +13,11 @@ export default function ThankYouPage() {
         <div className="flex justify-center">
           <div className="w-40 h-40 md:w-48 md:h-48">
             <Image
-              src="/temp-logo2.png"
-              alt="Barangay Logo"
-              width={160}
-              height={160}
-              className="w-full h-full object-contain"
+              src="/logo.png"
+              alt="Logo"
+              width={200}
+              height={200}
+              priority
             />
           </div>
         </div>

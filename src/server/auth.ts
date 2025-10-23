@@ -1,8 +1,9 @@
+// /server/auth.ts
 'use server'
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import bcrypt from 'bcryptjs'
-import { cookies } from 'next/headers'
+import { cookies } from 'next/headers' 
 import { redirect } from 'next/navigation'
 import type { Database } from '../../database.types'
 
@@ -17,7 +18,10 @@ export interface LoginResult {
 
 export async function loginUser(email: string, password: string): Promise<LoginResult> {
   try {
-    if (!email || !password) {
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail || !trimmedPassword) {
       return { success: false, error: 'Email and password are required' }
     }
 
@@ -27,37 +31,29 @@ export async function loginUser(email: string, password: string): Promise<LoginR
     const { data: user, error } = await supabase
       .from('mUsers')
       .select('*')
-      .eq('email', email)
-      .eq('del_flag', 0) // Only get active users
+      .eq('email', trimmedEmail)
+      .eq('del_flag', 0)
       .single()
 
     if (error || !user) {
       return { success: false, error: 'User not found' }
     }
 
-    // Compare hashed password
-    const isMatch = await bcrypt.compare(password, user.password)
+    const isMatch = await bcrypt.compare(trimmedPassword, user.password)
     if (!isMatch) {
       return { success: false, error: 'Invalid password' }
     }
 
-    // Check account approval
     if (user.sign_up_status !== 'approved') {
-      return {
-        success: false,
-        error: `Account is ${user.sign_up_status}. Please contact admin.`
-      }
+      return { success: false, error: `Account is ${user.sign_up_status}. Please contact admin.` }
     }
 
-    // Check if user is not deleted
     if (user.del_flag === 1) {
       return { success: false, error: 'Account not found' }
     }
 
-    // Create a custom session since we're using our own password hashing
     const cookieStore = await cookies()
-    
-    // Set user session cookie for middleware
+
     const userSession = {
       id: user.id,
       first_name: user.first_name,
@@ -65,15 +61,14 @@ export async function loginUser(email: string, password: string): Promise<LoginR
       email: user.email,
       user_type: user.user_type
     }
-    
+
     cookieStore.set('user-session', JSON.stringify(userSession), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
+      maxAge: 60 * 60 * 24 * 7
     })
 
-    // Legacy cookie for backward compatibility
     cookieStore.set('custom-auth-user', JSON.stringify({
       id: user.id,
       email: user.email,
@@ -81,23 +76,18 @@ export async function loginUser(email: string, password: string): Promise<LoginR
       mbarangayid: user.mbarangayid
     }), {
       path: '/',
-      maxAge: 3600, // 1 hour
+      maxAge: 3600,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
     })
 
-    // Return user data without password
-    return {
-      success: true,
-      user: userSession
-    }
+    return { success: true, user: userSession }
   } catch (error) {
     console.error('Login error:', error)
     return { success: false, error: 'Unexpected error occurred' }
   }
 }
 
-// Dedicated server action for resident login with proper redirect handling
 export async function loginResidentAction(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
@@ -114,7 +104,7 @@ export async function loginResidentAction(formData: FormData) {
   }
 
   const result = await loginUser(email, password)
-  
+
   if (result.success) {
     // Redirect based on user type
     const userType = result.user?.user_type
@@ -141,10 +131,8 @@ export async function logoutUser() {
     const supabase = await createSupabaseServerClient()
     const cookieStore = await cookies()
 
-    // Sign out from Supabase auth
     await supabase.auth.signOut()
 
-    // Clear custom authentication cookies
     cookieStore.set('custom-auth-user', '', { path: '/', maxAge: 0 })
     cookieStore.set('user-session', '', { path: '/', maxAge: 0 })
 
@@ -159,7 +147,6 @@ export async function authenticateUser(email: string, password: string) {
   const result = await loginUser(email, password)
 
   if (result.success) {
-    // Redirect to dashboard or appropriate page after successful login
     redirect('/dashboard')
   }
 

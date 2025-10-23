@@ -1,173 +1,80 @@
-import { createServerClient } from '@supabase/ssr'
+// middleware.ts (FIXED for Official and Super Admin)
 import { NextResponse, type NextRequest } from 'next/server'
 
+const BLOCKED_LOGIN_PAGES = [
+  '/',
+  '/admin/login',
+  '/official/login',
+  '/resident/login'
+];
+
 export async function middleware(request: NextRequest) {
-  // Skip middleware for static files and API routes
-  if (
-    request.nextUrl.pathname.startsWith('/_next') ||
-    request.nextUrl.pathname.startsWith('/api') ||
-    request.nextUrl.pathname.includes('.')
-  ) {
-    return NextResponse.next()
-  }
-
-  // Development mode - use mock user with ID 7 for full access
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Development mode: Using mock user ID 7 with super_admin access')
-    const mockUser = {
-      id: 7,
-      first_name: 'Dev',
-      last_name: 'User',
-      email: 'dev@barangay-konek.local',
-      user_type: 'super_admin',
-      mbarangayid: 1
-    }
-    
-    const response = NextResponse.next()
-    response.headers.set('x-user-data', JSON.stringify(mockUser))
-    return response
-  }
-
-  // Check if Supabase credentials are configured
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.warn('Supabase credentials not configured. Skipping authentication middleware.')
-    return NextResponse.next()
-  }
-
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
-
-  createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
   const { pathname } = request.nextUrl
-
-  // Get user session from cookies
   const userCookie = request.cookies.get('user-session')
   let user = null
+  let response = NextResponse.next()
 
+  // --- 1. Get User Session and Set Headers ---
   if (userCookie) {
     try {
       user = JSON.parse(userCookie.value)
+      // Pass user data via header for Server Components (like /official/page.tsx)
+      response.headers.set('x-user-data', userCookie.value)
     } catch (error) {
-      console.error('Error parsing user session:', error)
-      // Clear invalid cookie
-      const response = NextResponse.next()
+      console.error('Error parsing user session in middleware:', error)
       response.cookies.delete('user-session')
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
+      return NextResponse.redirect(new URL('/login', request.url))
     }
   }
 
-  // If user is not signed in and the current path is not login or register, redirect to login
-  if (!user && !pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
-  // If user is signed in and trying to access login or register, redirect to appropriate dashboard
-  if (user && (pathname.startsWith('/login') || pathname.startsWith('/register'))) {
-    const url = request.nextUrl.clone()
-
-    // Get user type from session
-    const userType = user.user_type
-
-    if (userType === 'super_admin') {
-      url.pathname = '/admin'
-    } else if (userType === 'official') {
-      url.pathname = '/official'
-    } else if (userType === 'resident') {
-      url.pathname = '/resident'
-    } else {
-      url.pathname = '/resident' // default fallback
-    }
-
-    return NextResponse.redirect(url)
-  }
-
-  // Role-based access control for specific routes
+  // --- 2. GLOBAL REDIRECTION LOGIC ---
   if (user) {
     const userType = user.user_type
 
-    // Resident route protection
-    if (pathname.startsWith('/resident') && userType !== 'resident') {
-      const url = request.nextUrl.clone()
-      if (userType === 'super_admin') {
-        url.pathname = '/admin'
-      } else if (userType === 'official') {
-        url.pathname = '/official'
-      } else {
-        url.pathname = '/login'
+    if (BLOCKED_LOGIN_PAGES.includes(pathname) || pathname === '/') {
+      let redirectPath = '';
+      if (userType === 'super_admin') redirectPath = '/admin';
+      else if (userType === 'official') redirectPath = '/official'; // 👈 Official redirect path
+      else if (userType === 'resident') redirectPath = '/resident';
+
+      if (redirectPath) {
+        return NextResponse.redirect(new URL(redirectPath, request.url));
       }
-      return NextResponse.redirect(url)
     }
 
-    // Official route protection
-    if (pathname.startsWith('/official') && userType !== 'official') {
-      const url = request.nextUrl.clone()
-      if (userType === 'super_admin') {
-        url.pathname = '/admin'
-      } else if (userType === 'resident') {
-        url.pathname = '/resident'
-      } else {
-        url.pathname = '/login'
-      }
-      return NextResponse.redirect(url)
-    }
+    // --- 3. ROLE-BASED ACCESS CONTROL (Rerouting users if they access the wrong portal) ---
 
-    // Admin route protection
+    // Block non-Admins from /admin
     if (pathname.startsWith('/admin') && userType !== 'super_admin') {
-      const url = request.nextUrl.clone()
-      if (userType === 'official') {
-        url.pathname = '/official'
-      } else if (userType === 'resident') {
-        url.pathname = '/resident'
-      } else {
-        url.pathname = '/login'
-      }
-      return NextResponse.redirect(url)
+      const url = new URL(userType === 'official' ? '/official' : '/resident', request.url);
+      return NextResponse.redirect(url);
+    }
+
+    // Block non-Officials from /official
+    if (pathname.startsWith('/official') && userType !== 'official') {
+      const url = new URL(userType === 'super_admin' ? '/admin' : '/resident', request.url);
+      return NextResponse.redirect(url);
+    }
+
+    // Block non-Residents from /resident
+    if (pathname.startsWith('/resident') && userType !== 'resident') {
+      const url = new URL(userType === 'super_admin' ? '/admin' : '/official', request.url);
+      return NextResponse.redirect(url);
     }
   }
 
-  // Add user data to request headers for pages to access
-  const response = NextResponse.next()
-  if (user) {
-    response.headers.set('x-user-data', JSON.stringify(user))
+  // --- 4. General Logout Check ---
+  // If user is NOT signed in and trying to access a protected dashboard, redirect to /login
+  if (!user && (pathname.startsWith('/admin') || pathname.startsWith('/official') || pathname.startsWith('/resident'))) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
+  // Final return with updated headers
   return response
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

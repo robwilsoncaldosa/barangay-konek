@@ -1,8 +1,8 @@
+// official/login/page.tsx (FIXED: Added useEffect)
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-
 import { loginUser } from '../../../server/auth';
 
 const OfficialLogin = () => {
@@ -10,6 +10,24 @@ const OfficialLogin = () => {
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const router = useRouter()
+
+  // 1. Client-side Protection Fallback
+  useEffect(() => {
+    const userJson = localStorage.getItem("user");
+    if (userJson) {
+      try {
+        const user = JSON.parse(userJson);
+        if (user.user_type === "official") {
+          router.push("/official");
+        } else if (user.user_type === "super_admin") {
+          router.push("/admin");
+        }
+      } catch (e) {
+        console.log("message", e);
+      }
+    }
+  }, [router]);
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,6 +43,7 @@ const OfficialLogin = () => {
 
       localStorage.setItem('user', JSON.stringify(result.user))
 
+      // 2. Client-side redirect after successful login
       switch (result.user?.user_type) {
         case 'official':
           router.push('/official')
@@ -32,7 +51,7 @@ const OfficialLogin = () => {
         case 'resident':
           router.push('/resident')
           break
-        case 'admin':
+        case 'super_admin':
           router.push('/admin')
           break
         default:
@@ -47,51 +66,6 @@ const OfficialLogin = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-blue-50">
       <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-center mb-6 text-blue-700">
-          Official Login
-        </h1>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            placeholder="Email"
-            className="w-full px-3 py-2 border rounded"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="Password"
-            className="w-full px-3 py-2 border rounded"
-          />
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-          >
-            Log In
-          </button>
-        </form>
-
-        <div className="mt-4 flex justify-between text-sm">
-          <a
-            href="/official/forgot-password"
-            className="text-blue-600 hover:underline"
-          >
-            Forgot Password?
-          </a>
-          <a
-            href="/register/official?userType=official"
-            className="text-blue-600 hover:underline"
-          >
-            Create Account
-          </a>
-        </div>
-
-        {message && <p className="mt-2 text-center text-gray-600">{message}</p>}
       </div>
     </div>
   )
