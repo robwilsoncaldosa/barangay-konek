@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
 
 export function Header() {
     return (
@@ -21,6 +22,10 @@ export function Header() {
 
                     {/* Navigation Buttons */}
                     <div className="flex items-center gap-2 md:gap-4">
+                        <AnimatedThemeToggler
+                          className="h-9 w-9 p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                          aria-label="Toggle theme"
+                        />
                         <Button variant="ghost" size="sm" className="text-sm md:text-base" asChild>
                             <Link href="/login">Sign In</Link>
                         </Button>

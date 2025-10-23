@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { NavbarActions } from "./navbar-actions"
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -224,6 +225,10 @@ export function Navbar({
 
       {/* Actions Section */}
       <div className="flex items-center gap-2">
+        <AnimatedThemeToggler
+          className="h-9 w-9 p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+          aria-label="Toggle theme"
+        />
         {customActions}
         {!hideDefaultActions && (
           <>
