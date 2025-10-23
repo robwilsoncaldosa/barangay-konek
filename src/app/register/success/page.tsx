@@ -63,10 +63,10 @@ export default function ThankYouPage() {
 
       {/* CTA Button at bottom with padding */}
       <div className="w-full max-w-sm mx-auto pb-8 space-y-2">
-        <Link href="/login" className="w-full">
+        <Link href="/role-selection" className="w-full">
           <Button variant={"outline"} className="w-full  py-6 rounded-lg font-medium flex items-center justify-center">
             <ArrowLeftIcon className="w-5 h-5 mr-2" />
-            Go to Login
+            Continue to Login
           </Button>
         </Link>
       </div>
