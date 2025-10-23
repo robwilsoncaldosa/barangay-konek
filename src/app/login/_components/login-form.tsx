@@ -111,6 +111,7 @@ export function LoginForm({ action }: LoginFormProps) {
             )}
           />
 
+          {/* Google login - commented out as not ready for deployment
           <div className="text-center">
             <p className="text-sm text-muted-foreground mb-4">or continue with</p>
             <Button
@@ -128,6 +129,7 @@ export function LoginForm({ action }: LoginFormProps) {
               Google
             </Button>
           </div>
+          */}
 
           <Button
             type="submit"
