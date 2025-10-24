@@ -3,7 +3,8 @@
 import nodemailer from 'nodemailer'
 import fs from 'fs'
 import path from 'path'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { uploadFile } from '../lib/storage'
+import { createSupabaseServerClient } from '../lib/supabase/server'
 import type { Database } from '../../database.types'
 
 type Request = Database['public']['Tables']['mRequest']['Row']
@@ -316,17 +317,16 @@ export async function deleteRequest(requestId: string): Promise<{ success: boole
 
 export async function completeRequestWithFile({ requestId, email, file, tx_hash }: CompleteRequestParams) {
   try {
-    // Save the file
-    const uploadDir = path.join(process.cwd(), 'uploads')
-    fs.mkdirSync(uploadDir, { recursive: true })
-    const filePath = path.join(uploadDir, `${Date.now()}-${file.name}`)
+    // Upload file using unified storage utility
+    const uploadResult = await uploadFile(file)
+    
+    if (!uploadResult.success) {
+      return { success: false, error: uploadResult.error || 'File upload failed' }
+    }
+    
+    const publicUrl = uploadResult.publicUrl!
 
-    // Read file as arrayBuffer and write to disk
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    fs.writeFileSync(filePath, buffer)
-
-    // Send email
+    // Send email with file attachment using the public URL
     const transporter = nodemailer.createTransport({
       host: process.env.NEXT_PUBLIC_SMTP_HOST,
       port: Number(process.env.NEXT_PUBLIC_SMTP_PORT),
@@ -352,14 +352,14 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
                 Dear Resident,
               </p>
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                Thank you for using our service. Please find the attached document you requested.
+                Thank you for using our service. Your requested document is now ready for download.
               </p>
-              ${tx_hash
-          ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                      Blockchain transaction: <a href="https://sepolia-blockscout.lisk.com/tx/${tx_hash}">${tx_hash}</a>
-                     </p>`
-          : ""
-        }
+              <div style="margin: 24px 0; padding: 16px; background-color: #f8fafc; border-radius: 6px; border-left: 4px solid #2563eb;">
+                <p style="margin: 0; color: #374151; font-size: 15px;">
+                  <strong>Download your document:</strong><br/>
+                  <a href="${publicUrl}" style="color: #2563eb; text-decoration: none; font-weight: 500;" target="_blank">Click here to download</a>
+                </p>
+              </div>
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
                 If you have any concerns or need additional assistance, feel free to reply to this email.
               </p>
@@ -374,12 +374,11 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
           </div>
         </div>
       `,
-      attachments: [{ filename: file.name, path: filePath }],
     })
 
     // Update request status
-    const supabase = await createSupabaseServerClient()
-    const { data, error } = await supabase
+    const supabaseClient = await createSupabaseServerClient()
+    const { data, error } = await supabaseClient
       .from('mRequest')
       .update({
         status: 'completed',
