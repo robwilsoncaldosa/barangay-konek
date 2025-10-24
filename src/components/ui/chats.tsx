@@ -32,7 +32,7 @@ export default function ChatWidget({ userId = null }: ChatWidgetProps) {
   const [translatedMessages, setTranslatedMessages] = useState<
     Record<number, TranslatedMessage>
   >({});
-  const [originalTexts, setOriginalTexts] = useState<Record<number, string>>({});
+  // const [originalTexts, setOriginalTexts] = useState<Record<number, string>>({});
   const endRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -142,10 +142,10 @@ export default function ChatWidget({ userId = null }: ChatWidgetProps) {
     const msg = messages[index]?.message;
     if (!msg) return;
 
-    setOriginalTexts((prev) => ({
-      ...prev,
-      [index]: prev[index] || msg,
-    }));
+    // setOriginalTexts((prev) => ({
+    //   ...prev,
+    //   [index]: prev[index] || msg,
+    // }));
 
     // reset to English/original
     if (targetLang === "en") {
