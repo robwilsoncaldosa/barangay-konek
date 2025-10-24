@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import RequestTable from "@/components/request-table";
+import { CertificateGridWithRequest } from "@/components/certificate-grid-with-request";
 
-export default async function OfficialRequestsPage() {
+export default async function ResidentCertificatesPage() {
   const headersList = await headers();
   const userDataHeader = headersList.get('x-user-data');
 
@@ -10,11 +10,11 @@ export default async function OfficialRequestsPage() {
   const user = JSON.parse(userDataHeader!);
 
   return (
-    <DashboardLayout user={user} title="Document Requests">
+    <DashboardLayout user={user} title="Certificates">
       <div className="container mx-auto px-4">
-        <RequestTable 
-          userRole="official" 
-          showActions={true}
+        <CertificateGridWithRequest 
+          userRole="resident" 
+          userId={user.id}
         />
       </div>
     </DashboardLayout>

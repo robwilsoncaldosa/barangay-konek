@@ -1,8 +1,6 @@
 import { headers } from "next/headers";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import RequestTable from "@/components/request-table";
-import CertificateTable from "@/components/certificate-table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashboardStats } from "@/components/dashboard-stats";
 
 export default async function ResidentPage() {
   const headersList = await headers();
@@ -12,32 +10,20 @@ export default async function ResidentPage() {
   const user = JSON.parse(userDataHeader!);
 
   return (
-    <DashboardLayout user={user} title="Resident Portal">
-      <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-8">Welcome, {user.first_name} {user.last_name}!</h1>
+    <DashboardLayout user={user} title="Resident Dashboard">
+      <div className="container mx-auto px-4 space-y-6">
+        <div className="flex flex-col space-y-2">
+          <h1 className="text-3xl font-bold">Welcome, {user.first_name} {user.last_name}!</h1>
+          <p className="text-muted-foreground">
+            Here&apos;s an overview of your requests and available services.
+          </p>
+        </div>
         
-        <Tabs defaultValue="requests" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="requests">My Requests</TabsTrigger>
-            <TabsTrigger value="certificates">My Certificates</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="requests" className="space-y-4">
-            <RequestTable 
-              userRole="resident" 
-              showActions={false} 
-              userId={user.id}
-            />
-          </TabsContent>
-          
-          <TabsContent value="certificates" className="space-y-4">
-            <CertificateTable 
-              userRole="resident" 
-              showActions={false} 
-              userId={user.id}
-            />
-          </TabsContent>
-        </Tabs>
+        <DashboardStats 
+          userRole="resident" 
+          userId={user.id}
+          userInfo={user}
+        />
       </div>
     </DashboardLayout>
   );
