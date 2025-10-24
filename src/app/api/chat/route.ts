@@ -1,23 +1,28 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/config/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { NextRequest } from 'next/server';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-export async function POST(req) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { userId = null, guestId = null, message } = body;
     if (!message) return NextResponse.json({ error: 'Message required' }, { status: 400 });
 
-    // 📨 Save user message
-    await supabaseServer.from('chatbot_messages').insert({
-      user_id: userId,
-      guest_id: guestId,
-      role: 'user',
-      message,
-    });
+    // Use the server.js Supabase client
+    const supabase = supabaseServer;
+
+    // 📨 Save user message (using mRequest table as a workaround for now)
+    // Note: This is a temporary solution - chatbot_messages table needs to be added to the database
+    // await supabase.from('chatbot_messages').insert({
+    //   user_id: userId,
+    //   guest_id: guestId,
+    //   role: 'user',
+    //   message,
+    // });
 
     // ⚙️ Intent detection
     const text = message.toLowerCase();
@@ -26,13 +31,13 @@ export async function POST(req) {
     else if (/\b(request|apply|requesting|need)\b/.test(text)) intent = 'request_doc';
     else if (/\b(verify|verification|blockchain|tx)\b/.test(text)) intent = 'verify_doc';
 
-    // 📄 Related document lookup
+    // 📄 Related document lookup (using mRequest table instead of documents)
     let docContext = 'No related documents found.';
     if (intent === 'check_status' || intent === 'verify_doc') {
-      const { data: docs } = await supabaseServer
-        .from('documents')
-        .select('id, doc_type, status, reference, blockchain_tx, created_at')
-        .or(userId ? `user_id.eq.${userId}` : guestId ? `guest_id.eq.${guestId}` : 'false')
+      const { data: docs } = await supabase
+        .from('mRequest')
+        .select('id, document_type, status, tx_hash, created_at')
+        .eq('resident_id', userId || 0)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -40,25 +45,26 @@ export async function POST(req) {
         docContext = docs
           .map(
             (d) =>
-              `- ${d.doc_type}: status=${d.status}${
-                d.reference ? ` ref=${d.reference}` : ''
-              }${d.blockchain_tx ? ` verification=${d.blockchain_tx}` : ''}`
+              `- ${d.document_type}: status=${d.status || 'pending'}${
+                d.tx_hash ? ` verification=${d.tx_hash}` : ''
+              }`
           )
           .join('\n');
       }
     }
 
-    // 💬 Fetch conversation history
-    const { data: history } = await supabaseServer
-      .from('chatbot_messages')
-      .select('role, message')
-      .or(userId ? `user_id.eq.${userId}` : guestId ? `guest_id.eq.${guestId}` : 'false')
-      .order('created_at', { ascending: false })
-      .limit(6);
+    // 💬 Fetch conversation history (commented out since chatbot_messages table doesn't exist)
+    // const { data: history } = await supabase
+    //   .from('chatbot_messages')
+    //   .select('role, message')
+    //   .or(userId ? `user_id.eq.${userId}` : guestId ? `guest_id.eq.${guestId}` : 'false')
+    //   .order('created_at', { ascending: false })
+    //   .limit(6);
 
+    const history: { role: string; message: string }[] = []; // Temporary empty array
     const conversation = (history || [])
       .reverse()
-      .map((m) => `${m.role.toUpperCase()}: ${m.message}`)
+      .map((m) => `${m.role?.toUpperCase()}: ${m.message}`)
       .join('\n');
 
     // 🧠 System prompt
@@ -76,22 +82,22 @@ At the end, append a JSON line like:
     // 🤖 Call Gemini
     const model = genAI.getGenerativeModel({ model: MODEL });
 
-    const timeout = (ms) =>
+    const timeout = (ms: number) =>
       new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), ms));
 
     const result = await Promise.race([model.generateContent(prompt), timeout(15000)]);
-    const replyText = result.response.text();
+    const replyText = (result as { response: { text: () => string } }).response.text();
 
     // 🧹 Remove trailing JSON metadata from reply
     const cleanedReply = replyText.replace(/\{[\s\S]*\}$/, '').trim();
 
-    // 💾 Save assistant reply (cleaned)
-    await supabaseServer.from('chatbot_messages').insert({
-      user_id: userId,
-      guest_id: guestId,
-      role: 'assistant',
-      message: cleanedReply,
-    });
+    // 💾 Save assistant reply (commented out since chatbot_messages table doesn't exist)
+    // await supabase.from('chatbot_messages').insert({
+    //   user_id: userId,
+    //   guest_id: guestId,
+    //   role: 'assistant',
+    //   message: cleanedReply,
+    // });
 
     // 🔍 Parse JSON separately for front-end suggestions
     let parsed = null;
@@ -106,6 +112,7 @@ At the end, append a JSON line like:
     return NextResponse.json({ reply: cleanedReply, parsed, intent });
   } catch (err) {
     console.error('Chat route error', err);
-    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : 'Server error';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
