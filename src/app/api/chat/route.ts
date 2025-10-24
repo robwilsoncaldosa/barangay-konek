@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     // Related document lookup
     let docContext = 'No related documents found.';
     if (intent === 'check_status' || intent === 'verify_doc') {
-      const { data: docs } = await supabase
+      const { data: docs } = await supabaseServer
         .from('mRequest')
         .select('id, document_type, status, tx_hash, created_at')
         .eq('resident_id', userId || 0)
@@ -60,21 +60,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch conversation history
-    const { data: history } = await supabaseServer
+    const { data: chatHistory } = await supabaseServer
       .from('chatbot_messages')
       .select('role, message')
       .or(userId ? `user_id.eq.${userId}` : guestId ? `guest_id.eq.${guestId}` : 'false')
       .order('created_at', { ascending: false })
       .limit(6);
 
-    const history: { role: string; message: string }[] = []; // Temporary empty array
-    const conversation = (history || [])
+    const conversation = (chatHistory || [])
       .reverse()
       .map((m) => `${m.role?.toUpperCase()}: ${m.message}`)
       .join('\n');
 
     // Check if this is the first chat
-    const isFirstMessage = !history || history.length <= 1;
+    const isFirstMessage = !chatHistory || chatHistory.length <= 1;
 
     // System prompt
     const systemPrompt = `
