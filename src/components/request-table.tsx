@@ -349,6 +349,7 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
         requestId: String(selectedRequest.id),
         email: selectedRequest.resident_email,
         file: uploadFile,
+        tx_hash: ''
       });
 
       if (result.success) {
