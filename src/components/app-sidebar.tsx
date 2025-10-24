@@ -66,6 +66,7 @@ const getNavigationItems = (userType: string) => {
         { title: "Dashboard", url: "/official", icon: LayoutDashboard },
         { title: "Requests", url: "/official/requests", icon: ClipboardList },
         { title: "Certificates", url: "/official/certificates", icon: FileText },
+        { title: "Residents", url: "/official/residents", icon: Users },
       ]
     case "resident":
       return [

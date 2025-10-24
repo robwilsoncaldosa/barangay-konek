@@ -311,7 +311,10 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
     try {
       const filters = userRole === "resident" && userId ? { resident_id: String(userId) } : {};
       const data = await getRequests(filters);
-      setRequests(data);
+      setRequests(data.map(item => ({
+        ...item,
+        resident_email: (item as { resident_email?: string }).resident_email || ""
+      })));
     } catch (err) {
       console.error("Error fetching requests:", err);
     } finally {
@@ -340,7 +343,7 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
 
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedRequest || !uploadFile) {
       alert("Please select a file to upload");
       return;
@@ -372,7 +375,7 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this request?")) return;
-    
+
     try {
       const result = await deleteRequest(String(id));
       if (result.success) {
@@ -406,8 +409,8 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
             {userRole === "resident" ? "My Requests" : "Document Requests"}
           </h2>
           <p className="text-muted-foreground">
-            {userRole === "resident" 
-              ? "View your submitted document requests." 
+            {userRole === "resident"
+              ? "View your submitted document requests."
               : "Manage document requests from residents."
             }
           </p>
@@ -462,9 +465,9 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}
@@ -564,9 +567,9 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
               </div>
             </div>
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setIsUploadDialogOpen(false);
                   setSelectedRequest(null);
