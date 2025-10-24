@@ -1,5 +1,4 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
