@@ -1,22 +1,40 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/config/client";
 import { v4 as uuidv4 } from "uuid";
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 
-export default function ChatWidget({ userId = null }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [guestId, setGuestId] = useState(null);
-  const [showLangMenu, setShowLangMenu] = useState(null);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translatedMessages, setTranslatedMessages] = useState({});
-  const [originalTexts, setOriginalTexts] = useState({});
-  const endRef = useRef(null);
-  const dropdownRef = useRef(null);
+// 🧩 Type definitions
+interface Message {
+  role: "user" | "assistant";
+  message: string;
+}
+
+interface ChatWidgetProps {
+  userId?: string | null;
+}
+
+interface TranslatedMessage {
+  [lang: string]: string | undefined;
+  activeLang?: string;
+}
+
+export default function ChatWidget({ userId = null }: ChatWidgetProps) {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [guestId, setGuestId] = useState<string | null>(null);
+  const [showLangMenu, setShowLangMenu] = useState<number | null>(null);
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
+  const [translatedMessages, setTranslatedMessages] = useState<
+    Record<number, TranslatedMessage>
+  >({});
+  const [originalTexts, setOriginalTexts] = useState<Record<number, string>>({});
+  const endRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   // 🧭 Load guest ID and chat history
   useEffect(() => {
@@ -32,8 +50,8 @@ export default function ChatWidget({ userId = null }) {
     }
   }, [isOpen, userId]);
 
-  // 🧩 Load previous messages or show animated greeting
-  async function loadHistory(gid, uid) {
+  // 🧩 Load chat history or show greeting
+  async function loadHistory(gid: string, uid: string | null) {
     const { data, error } = await supabase
       .from("chatbot_messages")
       .select("role, message, created_at")
@@ -41,13 +59,14 @@ export default function ChatWidget({ userId = null }) {
       .order("created_at", { ascending: true });
 
     if (!error && data) {
-      const formatted = data.map((d) => ({ role: d.role, message: d.message }));
+      const formatted: Message[] = data.map((d) => ({
+        role: d.role as "user" | "assistant",
+        message: d.message,
+      }));
 
-      if (!formatted.length) {
-        // Step 1: show typing indicator
+      if (formatted.length === 0) {
+        // show greeting animation
         setMessages([{ role: "assistant", message: "💬 Assistant is typing..." }]);
-
-        // Step 2: show real greeting after 1.5 seconds
         setTimeout(() => {
           setMessages([
             {
@@ -63,7 +82,7 @@ export default function ChatWidget({ userId = null }) {
     }
   }
 
-  // ✉️ Send user message
+  // ✉️ Send message
   async function send() {
     if (!input.trim() || loading) return;
     const text = input.trim();
@@ -71,11 +90,8 @@ export default function ChatWidget({ userId = null }) {
     setMessages((m) => [...m, { role: "user", message: text }]);
     setLoading(true);
 
-    // 🧠 Show typing indicator while waiting for assistant reply
-    setMessages((m) => [
-      ...m,
-      { role: "assistant", message: "💬 Assistant is typing..." },
-    ]);
+    // show typing indicator
+    setMessages((m) => [...m, { role: "assistant", message: "💬 Assistant is typing..." }]);
 
     try {
       const res = await fetch("/api/chat", {
@@ -87,7 +103,7 @@ export default function ChatWidget({ userId = null }) {
       const d = await res.json();
       const assistant = d.reply || "Sorry, can you say that again?";
 
-      // ⏳ Delay to simulate typing before showing real message
+      // simulate delay
       setTimeout(() => {
         setMessages((m) => {
           const withoutTyping = m.filter(
@@ -97,7 +113,7 @@ export default function ChatWidget({ userId = null }) {
         });
       }, 1500);
 
-      // Add optional suggestions
+      // optional suggestions
       if (d.parsed?.suggestions) {
         setTimeout(() => {
           setMessages((m) => [
@@ -122,7 +138,7 @@ export default function ChatWidget({ userId = null }) {
   }
 
   // 🌐 Translation logic
-  const translateText = async (index, targetLang) => {
+  const translateText = async (index: number, targetLang: string) => {
     const msg = messages[index]?.message;
     if (!msg) return;
 
@@ -131,6 +147,7 @@ export default function ChatWidget({ userId = null }) {
       [index]: prev[index] || msg,
     }));
 
+    // reset to English/original
     if (targetLang === "en") {
       setTranslatedMessages((prev) => {
         const updated = { ...prev };
@@ -178,9 +195,7 @@ export default function ChatWidget({ userId = null }) {
     }
   };
 
-  const toggleChat = () => {
-    setIsOpen((prev) => !prev);
-  };
+  const toggleChat = () => setIsOpen((prev) => !prev);
 
   return (
     <>
@@ -225,13 +240,13 @@ export default function ChatWidget({ userId = null }) {
             )}
 
             {messages.map((m, i) => {
-              if (m.message?.startsWith("__SUGGESTIONS__")) {
+              if (m.message.startsWith("__SUGGESTIONS__")) {
                 const suggestions = JSON.parse(
                   m.message.replace("__SUGGESTIONS__", "")
                 );
                 return (
                   <div key={i} className="flex flex-wrap gap-2 mt-2">
-                    {suggestions.map((s, idx) => (
+                    {suggestions.map((s: string, idx: number) => (
                       <button
                         key={idx}
                         className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition"
@@ -249,8 +264,7 @@ export default function ChatWidget({ userId = null }) {
               const activeLang = cache?.activeLang;
               const displayMessage = activeLang
                 ? cache[activeLang]
-                : messages[i]?.message;
-
+                : messages[i].message;
               const isTyping = m.message === "💬 Assistant is typing...";
 
               return (
@@ -263,7 +277,7 @@ export default function ChatWidget({ userId = null }) {
                     isAssistant ? "items-start" : "items-end"
                   }`}
                 >
-                  {/* 🌐 Translate Button (Assistant only) */}
+                  {/* 🌐 Translate Button */}
                   {isAssistant && !isTyping && (
                     <div className="relative mb-1 self-start" ref={dropdownRef}>
                       <button
