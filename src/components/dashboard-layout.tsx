@@ -17,8 +17,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, title, user }: DashboardLayoutProps) {
-  const isResident =
-    (user as any)?.userType === "resident" || (user as any)?.user_type === "resident";
+  const isResident = user?.user_type === "resident";
 
   return (
     <SidebarProvider
