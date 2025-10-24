@@ -53,16 +53,15 @@ import {
     TableCell,
     TableHead,
     TableHeader,
-    TableRow,
+    TableRow,   
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-// Assuming these server and lib functions are available
 import { connectWallet, addCertificateRequest } from "@/lib/blockchain";
 import {
     getRequests,
     completeRequestWithFile,
-    updateRequestStatus, // This will now handle payment_status updates as well
+    updateRequestStatus, 
     deleteRequest as deleteRequestServer,
 } from "@/server/request";
 
@@ -73,8 +72,8 @@ interface RequestData {
     mCertificateId: number | null;
     resident_id: number;
     purpose: string;
-    document_type: string; // Keeping for compatibility, but the column will use certificate_name
-    request_date: string; // ISO date string
+    document_type: string; 
+    request_date: string; 
     priority: string | null;
     status: string | null; // e.g., 'pending', 'completed', 'rejected'
     payment_status: string | null; // e.g., 'Unpaid', 'Paid'
@@ -86,11 +85,10 @@ interface RequestData {
     resident_name: string;      // The actual name 
     certificate_name: string;   // The actual certificate name 
     certificate_fee: number;    // The fee
+    resident_email: string;
 }
 
 type Request = RequestData; 
-
-// --- BADGE COMPONENTS (No changes needed here) ---
 
 const PaymentBadge: React.FC<{ status: Request['payment_status'] }> = ({ status }) => {
     const normalizedStatus = status?.toLowerCase().replace(/[\s-]/g, '');
@@ -99,11 +97,11 @@ const PaymentBadge: React.FC<{ status: Request['payment_status'] }> = ({ status 
     switch (normalizedStatus) {
         case 'paid':
         case 'completed':
-            variant = "default"; // Green/success
+            variant = "default"; 
             break;
         case 'pending':
         case 'unpaid':
-            variant = "secondary"; // Yellow/warning
+            variant = "secondary"; 
             break;
     }
 
@@ -124,16 +122,16 @@ const StatusBadge: React.FC<{ status: Request['status'] }> = ({ status }) => {
     switch (normalizedStatus) {
         case 'completed':
         case 'approved':
-            variant = "default"; // Green
+            variant = "default"; 
             break;
         case 'pending':
         case 'forconfirmation':
         case 'in-progress':
-            variant = "secondary"; // Yellow/Amber
+            variant = "secondary"; 
             break;
         case 'rejected':
         case 'cancelled':
-            variant = "destructive"; // Red
+            variant = "destructive"; 
             break;
     }
 
@@ -460,13 +458,10 @@ const RequestListPage = () => {
         }
         setFile(selected || null);
     };
-
+    
     const handleSubmit = async () => {
         if (!file || !selectedRequest || isProcessing) return
-
-        // NOTE: Still using placeholder for email based on previous code.
-        const email = "placeholder@example.com" 
-
+        const email = selectedRequest.resident_email;
         if (!email) {
             setMessage("❌ Resident email not found!")
             return
@@ -604,6 +599,7 @@ const RequestListPage = () => {
     useEffect(() => {
         fetchRequests();
         if (typeof window !== "undefined" && (window as any).ethereum) setHasMetaMask(true);
+
     }, []);
 
 

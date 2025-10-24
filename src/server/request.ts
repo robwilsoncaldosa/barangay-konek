@@ -3,8 +3,7 @@
 import nodemailer from 'nodemailer'
 import fs from 'fs'
 import path from 'path'
-import { uploadFile } from '../lib/storage'
-import { createSupabaseServerClient } from '../lib/supabase/server'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Database } from '../../database.types'
 
 type Request = Database['public']['Tables']['mRequest']['Row']
@@ -15,27 +14,31 @@ type Certificate = Database['public']['Tables']['mCertificate']['Row'] // Added 
 
 interface RequestWithUserAndCertificate extends Request {
   resident_name: string
-  resident_email: string
   certificate_name: string
   certificate_fee: number
+  resident_email: string
 }
 
 interface CompleteRequestParams {
   requestId: string
   email: string
   file: File
-  tx_hash?: string
+  tx_hash: string
 }
 
-// NOTE: I'm updating the 'mUsers' select to include name fields and using a JOIN for mCertificate.
 
 export async function getRequests(filters?: {
   resident_id?: string
   status?: Pick<Request, 'status'>['status']
-}): Promise<RequestWithUserAndCertificate[]> { // Updated return type
+}): Promise<RequestWithUserAndCertificate[]> { 
   try {
     const supabase = await createSupabaseServerClient()
-    let query = supabase.from('mRequest').select('*').eq('del_flag', 0).order('id', { ascending: true })
+    
+    let query = supabase
+      .from('mRequest')
+      .select('*, mCertificate(name, fee)') 
+      .eq('del_flag', 0)
+      .order('id', { ascending: true })
 
     if (filters?.resident_id) {
       query = query.eq('resident_id', Number(filters.resident_id))
@@ -45,14 +48,13 @@ export async function getRequests(filters?: {
       query = query.eq('status', filters.status)
     }
 
-    // Type definition for the joined data structure
     type JoinedRequest = Request & {
-      mCertificate: Pick<Certificate, 'name' | 'fee'> | null
+        mCertificate: Pick<Certificate, 'name' | 'fee'> | null
     }
 
     const { data: joinedRequests, error } = await query as {
-      data: JoinedRequest[] | null;
-      error: unknown | null;
+        data: JoinedRequest[] | null;
+        error: any;
     }
 
     if (error) {
@@ -67,9 +69,8 @@ export async function getRequests(filters?: {
 
     const { data: users, error: userError } = await supabase
       .from('mUsers')
-      .select('id, email, first_name, middle_name, last_name')
+      .select('id, first_name, middle_name, last_name, email')
       .in('id', residentIds)
-      .eq('del_flag', 0)
 
     if (userError) {
       console.error('Error fetching resident users for request mapping:', userError)
@@ -91,18 +92,16 @@ export async function getRequests(filters?: {
 
         residentName = parts.join(' ')
       }
-
+      
       // Extract certificate details, providing defaults if mCertificate is null
       const certificateDetails = request.mCertificate || { name: 'Unknown Certificate', fee: 0 }
-
-      const residentEmail = user?.email ?? ''
 
       return {
         ...request,
         resident_name: residentName,
-        resident_email: residentEmail,
         certificate_name: certificateDetails.name,
         certificate_fee: certificateDetails.fee,
+        resident_email: user?.email
       } as RequestWithUserAndCertificate
     })
 
@@ -120,7 +119,6 @@ export async function getRequestById(requestId: string): Promise<Request | null>
       .from('mRequest')
       .select('*')
       .eq('id', Number(requestId))
-      .eq('del_flag', 0)
       .single()
 
     if (error) {
@@ -317,16 +315,17 @@ export async function deleteRequest(requestId: string): Promise<{ success: boole
 
 export async function completeRequestWithFile({ requestId, email, file, tx_hash }: CompleteRequestParams) {
   try {
-    // Upload file using unified storage utility
-    const uploadResult = await uploadFile(file)
-    
-    if (!uploadResult.success) {
-      return { success: false, error: uploadResult.error || 'File upload failed' }
-    }
-    
-    const publicUrl = uploadResult.publicUrl!
+    // Save the file
+    const uploadDir = path.join(process.cwd(), 'uploads')
+    fs.mkdirSync(uploadDir, { recursive: true })
+    const filePath = path.join(uploadDir, `${Date.now()}-${file.name}`)
 
-    // Send email with file attachment using the public URL
+    // Read file as arrayBuffer and write to disk
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    fs.writeFileSync(filePath, buffer)
+
+    // Send email
     const transporter = nodemailer.createTransport({
       host: process.env.NEXT_PUBLIC_SMTP_HOST,
       port: Number(process.env.NEXT_PUBLIC_SMTP_PORT),
@@ -352,14 +351,14 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
                 Dear Resident,
               </p>
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                Thank you for using our service. Your requested document is now ready for download.
+                Thank you for using our service. Please find the attached document you requested.
               </p>
-              <div style="margin: 24px 0; padding: 16px; background-color: #f8fafc; border-radius: 6px; border-left: 4px solid #2563eb;">
-                <p style="margin: 0; color: #374151; font-size: 15px;">
-                  <strong>Download your document:</strong><br/>
-                  <a href="${publicUrl}" style="color: #2563eb; text-decoration: none; font-weight: 500;" target="_blank">Click here to download</a>
-                </p>
-              </div>
+              ${tx_hash
+          ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                      Blockchain transaction: <a href="https://sepolia-blockscout.lisk.com/tx/${tx_hash}">${tx_hash}</a>
+                     </p>`
+          : ""
+        }
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
                 If you have any concerns or need additional assistance, feel free to reply to this email.
               </p>
@@ -374,11 +373,12 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
           </div>
         </div>
       `,
+      attachments: [{ filename: file.name, path: filePath }],
     })
 
     // Update request status
-    const supabaseClient = await createSupabaseServerClient()
-    const { data, error } = await supabaseClient
+    const supabase = await createSupabaseServerClient()
+    const { data, error } = await supabase
       .from('mRequest')
       .update({
         status: 'completed',

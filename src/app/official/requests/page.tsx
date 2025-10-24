@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import RequestTable from "@/components/request-table";
+import RequestListPage from "../../_components/request";
 
 export default async function OfficialRequestsPage() {
   const headersList = await headers();
@@ -12,9 +12,7 @@ export default async function OfficialRequestsPage() {
   return (
     <DashboardLayout user={user} title="Document Requests">
       <div className="container mx-auto px-4">
-        <RequestTable 
-          userRole="official" 
-          showActions={true}
+        <RequestListPage 
         />
       </div>
     </DashboardLayout>
