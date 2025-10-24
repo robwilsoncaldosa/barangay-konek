@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const userCookie = request.cookies.get('user-session')
   let user = null
-  let response = NextResponse.next()
+  const response = NextResponse.next()
 
   // --- 1. Get User Session and Set Headers ---
   if (userCookie) {
