@@ -10,9 +10,12 @@ type Request = Database['public']['Tables']['mRequest']['Row']
 type RequestInsert = Database['public']['Tables']['mRequest']['Insert']
 type RequestUpdate = Database['public']['Tables']['mRequest']['Update']
 type User = Database['public']['Tables']['mUsers']['Row']
+type Certificate = Database['public']['Tables']['mCertificate']['Row'] // Added Certificate type
 
-interface RequestWithUser extends Request {
-  resident_email: string
+interface RequestWithUserAndCertificate extends Request {
+  resident_name: string
+  certificate_name: string
+  certificate_fee: number
 }
 
 interface CompleteRequestParams {
@@ -22,13 +25,21 @@ interface CompleteRequestParams {
   tx_hash: string
 }
 
+// NOTE: I'm updating the 'mUsers' select to include name fields and using a JOIN for mCertificate.
+
 export async function getRequests(filters?: {
   resident_id?: string
   status?: Pick<Request, 'status'>['status']
-}): Promise<RequestWithUser[]> {
+}): Promise<RequestWithUserAndCertificate[]> { // Updated return type
   try {
     const supabase = await createSupabaseServerClient()
-    let query = supabase.from('mRequest').select('*').order('id', { ascending: true })
+    
+    // 1. Initial query using Supabase JOIN syntax
+    let query = supabase
+      .from('mRequest')
+      .select('*, mCertificate(name, fee)') // Fetch request data PLUS certificate name and fee
+      .eq('del_flag', 0)
+      .order('id', { ascending: true })
 
     if (filters?.resident_id) {
       query = query.eq('resident_id', Number(filters.resident_id))
@@ -38,37 +49,64 @@ export async function getRequests(filters?: {
       query = query.eq('status', filters.status)
     }
 
-    const { data: requests, error } = await query
+    // Type definition for the joined data structure
+    type JoinedRequest = Request & {
+        mCertificate: Pick<Certificate, 'name' | 'fee'> | null
+    }
+
+    const { data: joinedRequests, error } = await query as {
+        data: JoinedRequest[] | null;
+        error: any;
+    }
 
     if (error) {
-      console.error('Error fetching requests:', error)
+      console.error('Error fetching requests with certificate details:', error)
       return []
     }
 
-    if (!requests) return []
+    if (!joinedRequests) return []
 
-    // Fetch users for resident_ids
-    const residentIds = [...new Set(requests.map(req => req.resident_id))]
+    // 2. Fetch users for resident_ids (to get their names)
+    const residentIds = [...new Set(joinedRequests.map(req => req.resident_id))]
+
     const { data: users, error: userError } = await supabase
       .from('mUsers')
-      .select('id, email')
+      .select('id, first_name, middle_name, last_name')
       .in('id', residentIds)
 
     if (userError) {
-      console.error('Error fetching users:', userError)
+      console.error('Error fetching resident users for request mapping:', userError)
       return []
     }
 
-    // Map requests with user emails
-    const requestsWithUser: RequestWithUser[] = requests.map(request => {
+    // 3. Map requests with user's full name and certificate details
+    const requestsWithUserAndCertificate: RequestWithUserAndCertificate[] = joinedRequests.map(request => {
       const user = users?.find(u => u.id === request.resident_id)
+
+      let residentName = 'Unknown Resident'
+      if (user) {
+        // Construct the full name: first + middle (if present) + last
+        const parts = [
+          user.first_name,
+          user.middle_name,
+          user.last_name
+        ].filter(Boolean) // Filter out null/empty middle_name
+
+        residentName = parts.join(' ')
+      }
+      
+      // Extract certificate details, providing defaults if mCertificate is null
+      const certificateDetails = request.mCertificate || { name: 'Unknown Certificate', fee: 0 }
+
       return {
         ...request,
-        resident_email: user?.email || 'Unknown'
-      }
+        resident_name: residentName,        // Corrected property name
+        certificate_name: certificateDetails.name,
+        certificate_fee: certificateDetails.fee,
+      } as RequestWithUserAndCertificate // Cast to the final type
     })
 
-    return requestsWithUser
+    return requestsWithUserAndCertificate
   } catch (error) {
     console.error('Unexpected error:', error)
     return []
@@ -135,14 +173,16 @@ export async function createRequest(
 export async function updateRequestStatus(
   requestId: string,
   status: string,
-  documentType?: string
+  documentType?: string,
+  paymentStatus?: string
 ): Promise<{ success: boolean; data?: Request; error?: string }> {
   try {
     const supabase = await createSupabaseServerClient()
     const updateData: RequestUpdate = {
       status,
       updated_at: new Date().toISOString(),
-      ...(documentType && { document_type: documentType })
+      ...(documentType && { document_type: documentType }),
+      payment_status: paymentStatus
     }
 
     const { data, error } = await supabase
