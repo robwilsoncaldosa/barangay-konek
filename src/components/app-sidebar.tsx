@@ -11,7 +11,6 @@ import {
   Settings,
   Building,
   Home,
-  LogOut,
   User,
 } from "lucide-react"
 
@@ -37,20 +36,20 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 // Get navigation items based on user type
 const getNavigationItems = (userType: string) => {
-  const isDev = process.env.NODE_ENV === 'development'
+  // const isDev = process.env.NODE_ENV === 'development'
 
-  if (isDev) {
-    // In development, show all navigation items for testing
-    return [
-      { title: "Admin", url: "/admin", icon: LayoutDashboard },
-      { title: "Official", url: "/official", icon: Building },
-      { title: "Resident", url: "/resident", icon: Home },
-      { title: "Users", url: "/admin/users", icon: Users },
-      { title: "Requests", url: "/admin/requests", icon: ClipboardList },
-      { title: "Certificates", url: "/admin/certificates", icon: FileText },
-      { title: "Officials", url: "/admin/officials", icon: UserCheck },
-    ]
-  }
+  // if (isDev) {
+  //   // In development, show all navigation items for testing
+  //   return [
+  //     { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  //     { title: "Official", url: "/official", icon: Building },
+  //     { title: "Resident", url: "/resident", icon: Home },
+  //     { title: "Users", url: "/admin/users", icon: Users },
+  //     { title: "Requests", url: "/admin/requests", icon: ClipboardList },
+  //     { title: "Certificates", url: "/admin/certificates", icon: FileText },
+  //     { title: "Officials", url: "/admin/officials", icon: UserCheck },
+  //   ]
+  // }
 
   // Production navigation based on user type
   switch (userType) {
@@ -71,9 +70,8 @@ const getNavigationItems = (userType: string) => {
     case "resident":
       return [
         { title: "Dashboard", url: "/resident", icon: LayoutDashboard },
-        { title: "My Requests", url: "/resident/requests", icon: ClipboardList },
-        { title: "My Certificates", url: "/resident/certificates", icon: FileText },
-        { title: "Profile", url: "/resident/profile", icon: User },
+        { title: "Requests", url: "/resident/requests", icon: ClipboardList },
+        { title: "Certificates", url: "/resident/certificates", icon: FileText },
       ]
     default:
       return []

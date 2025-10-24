@@ -13,27 +13,26 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Development mode - only use mock user for specific routes or when no user session exists
+  let user = null
+
+  // Development mode - check for real user session first, then fall back to mock user
   if (process.env.NODE_ENV === 'development') {
     // Check if user has a real session first
     const userCookie = request.cookies.get('user-session')
     if (userCookie) {
       try {
-        const user = JSON.parse(userCookie.value)
+        user = JSON.parse(userCookie.value)
         console.log('Development mode: Using real user session', user.email)
-        const response = NextResponse.next()
-        response.headers.set('x-user-data', JSON.stringify(user))
-        return response
       } catch (error) {
         console.error('Error parsing user session in dev mode:', error)
         // Fall through to mock user if session is invalid
       }
     }
-    
+
     // Only use mock user if no real session exists and not on login/register pages
-    if (!pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
+    if (!user && !pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
       console.log('Development mode: Using mock user ID 7 with super_admin access')
-      const mockUser = {
+      user = {
         id: 7,
         first_name: 'Dev',
         last_name: 'User',
@@ -41,10 +40,6 @@ export async function middleware(request: NextRequest) {
         user_type: 'super_admin',
         mbarangayid: 1
       }
-      
-      const response = NextResponse.next()
-      response.headers.set('x-user-data', JSON.stringify(mockUser))
-      return response
     }
   }
 
@@ -79,11 +74,10 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Get user session from cookies
+  // Get user session from cookies or use development mode user
   const userCookie = request.cookies.get('user-session')
-  let user = null
 
-  if (userCookie) {
+  if (userCookie && !user) {
     try {
       user = JSON.parse(userCookie.value)
     } catch (error) {
@@ -128,42 +122,32 @@ export async function middleware(request: NextRequest) {
   if (user) {
     const userType = user.user_type
 
-    // Resident route protection
-    if (pathname.startsWith('/resident') && userType !== 'resident') {
-      const url = request.nextUrl.clone()
-      if (userType === 'super_admin') {
-        url.pathname = '/admin'
-      } else if (userType === 'official') {
-        url.pathname = '/official'
-      } else {
-        url.pathname = '/login'
-      }
-      return NextResponse.redirect(url)
-    }
-
-    // Official route protection
-    if (pathname.startsWith('/official') && userType !== 'official') {
-      const url = request.nextUrl.clone()
-      if (userType === 'super_admin') {
-        url.pathname = '/admin'
-      } else if (userType === 'resident') {
+    // Strict role-based access control - users can only access their own routes
+    if (userType === 'resident') {
+      // Residents can only access /resident routes
+      if (pathname.startsWith('/admin') || pathname.startsWith('/official')) {
+        const url = request.nextUrl.clone()
         url.pathname = '/resident'
-      } else {
-        url.pathname = '/login'
+        return NextResponse.redirect(url)
       }
-      return NextResponse.redirect(url)
-    }
-
-    // Admin route protection
-    if (pathname.startsWith('/admin') && userType !== 'super_admin') {
-      const url = request.nextUrl.clone()
-      if (userType === 'official') {
+    } else if (userType === 'official') {
+      // Officials can only access /official routes
+      if (pathname.startsWith('/admin') || pathname.startsWith('/resident')) {
+        const url = request.nextUrl.clone()
         url.pathname = '/official'
-      } else if (userType === 'resident') {
-        url.pathname = '/resident'
-      } else {
-        url.pathname = '/login'
+        return NextResponse.redirect(url)
       }
+    } else if (userType === 'super_admin') {
+      // Super admins can only access /admin routes
+      if (pathname.startsWith('/resident') || pathname.startsWith('/official')) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/admin'
+        return NextResponse.redirect(url)
+      }
+    } else {
+      // Unknown user type, redirect to login
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
       return NextResponse.redirect(url)
     }
   }
