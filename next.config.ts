@@ -8,6 +8,15 @@ const withMDX = createMDX({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  webpack: (config, { isServer }) => {
+    // Exclude blockchain folder from webpack compilation
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: ['**/blockchain/**', '**/node_modules/**']
+    };
+    
+    return config;
+  },
 };
 
 export default withMDX(nextConfig);

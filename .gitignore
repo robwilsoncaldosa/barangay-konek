@@ -43,3 +43,11 @@ env.local
 .vscode/launch.json
 .source/index.ts
 .source/index.ts
+
+# blockchain
+/blockchain
+/hardhat
+/artifacts
+/cache
+/deployments
+/typechain
