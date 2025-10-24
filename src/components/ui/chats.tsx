@@ -138,62 +138,60 @@ export default function ChatWidget({ userId = null }: ChatWidgetProps) {
   }
 
   // 🌐 Translation logic
-  const translateText = async (index: number, targetLang: string) => {
-    const msg = messages[index]?.message;
-    if (!msg) return;
+ const translateText = async (index: number, targetLang: string) => {
+  const msg = messages[index]?.message;
+  if (!msg) return;
 
-    // setOriginalTexts((prev) => ({
-    //   ...prev,
-    //   [index]: prev[index] || msg,
-    // }));
+  const existingTranslation = translatedMessages[index]?.[targetLang];
+  if (existingTranslation) {
+    setTranslatedMessages((prev) => ({
+      ...prev,
+      [index]: { ...prev[index], activeLang: targetLang },
+    }));
+    setShowLangMenu(null);
+    return;
+  }
 
-    // reset to English/original
-    if (targetLang === "en") {
-      setTranslatedMessages((prev) => {
-        const updated = { ...prev };
-        delete updated[index];
-        return updated;
-      });
-      setShowLangMenu(null);
-      return;
-    }
+  try {
+    setIsTranslating(true);
 
-    const existingTranslation = translatedMessages[index]?.[targetLang];
-    if (existingTranslation) {
+    // 🧠 Auto-skip if already English and targetLang is English
+    const isEnglish = /^[A-Za-z0-9\s.,!?'"()&%-]+$/.test(msg);
+    if (isEnglish && targetLang === "en") {
       setTranslatedMessages((prev) => ({
         ...prev,
-        [index]: { ...prev[index], activeLang: targetLang },
+        [index]: { ...prev[index], en: msg, activeLang: "en" },
       }));
       setShowLangMenu(null);
-      return;
-    }
-
-    try {
-      setIsTranslating(true);
-      const response = await fetch("/api/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: msg, targetLang }),
-      });
-
-      if (!response.ok) throw new Error("Translation failed");
-      const data = await response.json();
-
-      setTranslatedMessages((prev) => ({
-        ...prev,
-        [index]: {
-          ...(prev[index] || {}),
-          [targetLang]: data.translatedText,
-          activeLang: targetLang,
-        },
-      }));
-    } catch (error) {
-      console.error("Translation error:", error);
-    } finally {
       setIsTranslating(false);
-      setShowLangMenu(null);
+      return;
     }
-  };
+
+    // 🧠 Call translation API
+    const response = await fetch("/api/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: msg, targetLang }),
+    });
+
+    if (!response.ok) throw new Error("Translation failed");
+    const data = await response.json();
+
+    setTranslatedMessages((prev) => ({
+      ...prev,
+      [index]: {
+        ...(prev[index] || {}),
+        [targetLang]: data.translatedText,
+        activeLang: targetLang,
+      },
+    }));
+  } catch (error) {
+    console.error("Translation error:", error);
+  } finally {
+    setIsTranslating(false);
+    setShowLangMenu(null);
+  }
+};
 
   const toggleChat = () => setIsOpen((prev) => !prev);
 
