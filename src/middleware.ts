@@ -11,21 +11,41 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Development mode - use mock user with ID 7 for full access
+  const { pathname } = request.nextUrl
+
+  // Development mode - only use mock user for specific routes or when no user session exists
   if (process.env.NODE_ENV === 'development') {
-    console.log('Development mode: Using mock user ID 7 with super_admin access')
-    const mockUser = {
-      id: 7,
-      first_name: 'Dev',
-      last_name: 'User',
-      email: 'dev@barangay-konek.local',
-      user_type: 'super_admin',
-      mbarangayid: 1
+    // Check if user has a real session first
+    const userCookie = request.cookies.get('user-session')
+    if (userCookie) {
+      try {
+        const user = JSON.parse(userCookie.value)
+        console.log('Development mode: Using real user session', user.email)
+        const response = NextResponse.next()
+        response.headers.set('x-user-data', JSON.stringify(user))
+        return response
+      } catch (error) {
+        console.error('Error parsing user session in dev mode:', error)
+        // Fall through to mock user if session is invalid
+      }
     }
     
-    const response = NextResponse.next()
-    response.headers.set('x-user-data', JSON.stringify(mockUser))
-    return response
+    // Only use mock user if no real session exists and not on login/register pages
+    if (!pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
+      console.log('Development mode: Using mock user ID 7 with super_admin access')
+      const mockUser = {
+        id: 7,
+        first_name: 'Dev',
+        last_name: 'User',
+        email: 'dev@barangay-konek.local',
+        user_type: 'super_admin',
+        mbarangayid: 1
+      }
+      
+      const response = NextResponse.next()
+      response.headers.set('x-user-data', JSON.stringify(mockUser))
+      return response
+    }
   }
 
   // Check if Supabase credentials are configured
@@ -58,8 +78,6 @@ export async function middleware(request: NextRequest) {
       },
     }
   )
-
-  const { pathname } = request.nextUrl
 
   // Get user session from cookies
   const userCookie = request.cookies.get('user-session')

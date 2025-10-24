@@ -1,27 +1,12 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 
 export default async function ResidentPage() {
   const headersList = await headers();
   const userDataHeader = headersList.get('x-user-data');
 
-  if (!userDataHeader) {
-    redirect('/resident/login');
-  }
-
-  let user;
-  try {
-    user = JSON.parse(userDataHeader);
-  } catch (error) {
-    console.error('Error parsing user data:', error);
-    redirect('/resident/login');
-  }
-
-  // Ensure user has resident access
-  if (user.user_type !== 'resident') {
-    redirect('/resident/login');
-  }
+  // Parse user data (guaranteed to exist due to middleware protection)
+  const user = JSON.parse(userDataHeader!);
 
   return (
     <DashboardLayout user={user} title="Resident Portal">
