@@ -210,7 +210,8 @@ const CertificateTable = ({ userRole = "resident", showActions = true, userId }:
   const fetchCertificates = async () => {
     setLoading(true);
     try {
-      const data = await getCertificates();
+      const filters = userRole === "resident" && userId ? { resident_id: String(userId) } : {};
+      const data = await getCertificates(filters);
       setCertificates(data);
     } catch (err) {
       console.error("Error fetching certificates:", err);
@@ -280,7 +281,7 @@ const CertificateTable = ({ userRole = "resident", showActions = true, userId }:
 
   useEffect(() => {
     fetchCertificates();
-  }, []);
+  }, [userRole, userId]);
 
   if (loading) {
     return (

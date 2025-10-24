@@ -18,7 +18,7 @@ export function FeatureCard({ title, description, content, badge }: FeatureCardP
         <div className="flex items-center justify-between">
           <CardTitle>{title}</CardTitle>
           {badge && (
-            <NeumorphEyebrow 
+            <NeumorphEyebrow
               intent={badge.variant === 'beta' ? 'primary' : 'secondary'}
             >
               {badge.text}
@@ -32,4 +32,4 @@ export function FeatureCard({ title, description, content, badge }: FeatureCardP
       </CardContent>
     </Card>
   )
-}
+} 
