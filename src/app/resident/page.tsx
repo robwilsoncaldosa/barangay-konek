@@ -14,7 +14,7 @@ export default async function ResidentPage() {
   return (
     <DashboardLayout user={user} title="Resident Portal">
       <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-8">Welcome, {user.name}!</h1>
+        <h1 className="text-3xl font-bold mb-8">Welcome, {user.first_name} {user.last_name}!</h1>
         
         <Tabs defaultValue="requests" className="space-y-4">
           <TabsList>
