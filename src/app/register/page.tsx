@@ -4,7 +4,6 @@ import { getBarangays } from "@/server/barangay"
 import { REGISTRATION_CONSTANTS } from "@/lib/constants"
 import { RegistrationClient } from "./_components/registration-client"
 
-
 // Logo component for reusability
 function RegistrationLogo() {
   return (
@@ -20,7 +19,14 @@ function RegistrationLogo() {
   )
 }
 
-export default async function ResidentRegistrationPage() {
+interface RegisterPageProps {
+  searchParams: { role?: string }
+}
+
+export default async function RegisterPage({ searchParams }: RegisterPageProps) {
+  // Extract role from search params, default to 'resident'
+  const role = searchParams.role === 'official' ? 'official' : 'resident'
+  
   // Fetch barangays server-side
   const barangaysResult = await getBarangays()
   const barangays = barangaysResult.success ? barangaysResult.data || [] : []
@@ -31,6 +37,7 @@ export default async function ResidentRegistrationPage() {
         <RegistrationClient
           barangays={barangays}
           logo={<RegistrationLogo />}
+          userType={role}
         />
       </div>
     </div>

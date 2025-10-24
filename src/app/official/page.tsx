@@ -6,23 +6,8 @@ export default async function OfficialPage() {
   const headersList = await headers();
   const userDataHeader = headersList.get('x-user-data');
 
-  if (!userDataHeader) {
-    redirect('/official/login');
-  }
-
-  let user;
-  try {
-    user = JSON.parse(userDataHeader);
-  } catch (error) {
-    console.error('Error parsing user data:', error);
-    redirect('/official/login');
-  }
-
-  // Ensure user has official access
-  if (user.user_type !== 'official') {
-    redirect('/official/login');
-  }
-
+  // Parse user data (guaranteed to exist due to middleware protection)
+  const user = JSON.parse(userDataHeader!);
   return (
     <DashboardLayout user={user} title="Official Panel">
       <div className="container mx-auto px-4">

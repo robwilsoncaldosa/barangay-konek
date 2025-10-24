@@ -18,6 +18,7 @@ type Barangay = Database['public']['Tables']['mBarangay']['Row']
 interface RegistrationClientProps {
   barangays: Barangay[]
   logo: React.ReactNode
+  userType: 'resident' | 'official'
 }
 
 // Step component mapping
@@ -28,7 +29,7 @@ const STEP_COMPONENTS = {
   VotersDetailsStep
 } as const
 
-export function RegistrationClient({ barangays, logo }: RegistrationClientProps) {
+export function RegistrationClient({ barangays, logo, userType }: RegistrationClientProps) {
   const {
     showConfirmation,
     setShowConfirmation,
@@ -37,7 +38,7 @@ export function RegistrationClient({ barangays, logo }: RegistrationClientProps)
     handleConfirm,
     handleCancel,
     handleStepChange
-  } = useRegistration()
+  } = useRegistration(userType)
 
   return (
     <>

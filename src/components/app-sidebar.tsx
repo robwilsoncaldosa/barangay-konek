@@ -11,7 +11,6 @@ import {
   Settings,
   Building,
   Home,
-  LogOut,
   User,
 } from "lucide-react"
 
@@ -37,20 +36,20 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 // Get navigation items based on user type
 const getNavigationItems = (userType: string) => {
-  const isDev = process.env.NODE_ENV === 'development'
+  // const isDev = process.env.NODE_ENV === 'development'
 
-  if (isDev) {
-    // In development, show all navigation items for testing
-    return [
-      { title: "Admin Dashboard", url: "/admin", icon: LayoutDashboard },
-      { title: "Official Dashboard", url: "/official", icon: Building },
-      { title: "Resident Dashboard", url: "/resident", icon: Home },
-      { title: "Users", url: "/admin/users", icon: Users },
-      { title: "Requests", url: "/admin/requests", icon: ClipboardList },
-      { title: "Certificates", url: "/admin/certificates", icon: FileText },
-      { title: "Officials", url: "/admin/officials", icon: UserCheck },
-    ]
-  }
+  // if (isDev) {
+  //   // In development, show all navigation items for testing
+  //   return [
+  //     { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  //     { title: "Official", url: "/official", icon: Building },
+  //     { title: "Resident", url: "/resident", icon: Home },
+  //     { title: "Users", url: "/admin/users", icon: Users },
+  //     { title: "Requests", url: "/admin/requests", icon: ClipboardList },
+  //     { title: "Certificates", url: "/admin/certificates", icon: FileText },
+  //     { title: "Officials", url: "/admin/officials", icon: UserCheck },
+  //   ]
+  // }
 
   // Production navigation based on user type
   switch (userType) {
@@ -71,9 +70,8 @@ const getNavigationItems = (userType: string) => {
     case "resident":
       return [
         { title: "Dashboard", url: "/resident", icon: LayoutDashboard },
-        { title: "My Requests", url: "/resident/requests", icon: ClipboardList },
-        { title: "My Certificates", url: "/resident/certificates", icon: FileText },
-        { title: "Profile", url: "/resident/profile", icon: User },
+        { title: "Requests", url: "/resident/requests", icon: ClipboardList },
+        { title: "Certificates", url: "/resident/certificates", icon: FileText },
       ]
     default:
       return []
@@ -84,20 +82,15 @@ const getSecondaryNavItems = (userType: string) => {
   const commonItems = [
     {
       title: "Settings",
-      url: userType === "super_admin" ? "/admin/settings" : 
-           userType === "official" ? "/official/settings" : "/resident/settings",
+      url: userType === "super_admin" ? "/admin/settings" :
+        userType === "official" ? "/official/settings" : "/resident/settings",
       icon: Settings,
     },
   ]
 
   if (userType === "super_admin") {
     return [
-      ...commonItems,
-      {
-        title: "System Settings",
-        url: "/admin/system",
-        icon: Settings,
-      },
+      ...commonItems
     ]
   }
 
@@ -122,8 +115,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   <span className="truncate font-semibold">Barangay Konek</span>
                   <span className="truncate text-xs">
                     {user?.user_type === "super_admin" ? "Admin Panel" :
-                     user?.user_type === "official" ? "Official Panel" :
-                     user?.user_type === "resident" ? "Resident Portal" : "Dashboard"}
+                      user?.user_type === "official" ? "Official Panel" :
+                        user?.user_type === "resident" ? "Resident Portal" : "Dashboard"}
                   </span>
                 </div>
               </Link>

@@ -17,18 +17,6 @@ export function SiteHeader({ title = "Dashboard" }: SiteHeaderProps) {
         <Separator orientation="vertical" className="mr-2 h-4" />
         <h1 className="text-lg font-semibold">{title}</h1>
       </div>
-      <div className="ml-auto px-4">
-        <Button variant="ghost" size="icon" asChild>
-          <a
-            href="https://github.com/shadcn-ui/ui"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Github className="h-4 w-4" />
-            <span className="sr-only">GitHub</span>
-          </a>
-        </Button>
-      </div>
     </header>
   )
 }

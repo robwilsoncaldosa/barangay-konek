@@ -6,14 +6,16 @@ import { RegistrationData, CreateUserData } from "@/lib/types"
 import { REGISTRATION_CONSTANTS } from "@/lib/constants"
 import { registerUser } from "@/server/user"
 
-export function useRegistration() {
+export function useRegistration(userType: 'resident' | 'official' = 'resident') {
   const router = useRouter()
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [formData, setFormData] = useState<RegistrationData>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleRegistration = async (data: RegistrationData) => {
-    setFormData(data)
+    // Set the user type from the parameter
+    const dataWithUserType = { ...data, user_type: userType }
+    setFormData(dataWithUserType)
     setShowConfirmation(true)
     // Don't actually complete the form yet, just show the confirmation dialog
     return false // This prevents the form from completing
@@ -37,7 +39,7 @@ export function useRegistration() {
         current_barangay: formData.barangay || '', // Use same barangay for current
         contact_no: formData.contact_number || '', // Map contact_number to contact_no
         mbarangayid: formData.mbarangayid || 1, // Default barangay ID
-        user_type: formData.user_type || 'resident'
+        user_type: userType // Use the userType parameter instead of formData.user_type
       }
 
       const result = await registerUser(userData)

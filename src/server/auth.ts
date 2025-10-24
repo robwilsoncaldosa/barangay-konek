@@ -3,7 +3,7 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import bcrypt from 'bcryptjs'
-import { cookies } from 'next/headers' 
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { Database } from '../../database.types'
 
@@ -145,10 +145,110 @@ export async function logoutUser() {
 
 export async function authenticateUser(email: string, password: string) {
   const result = await loginUser(email, password)
+  return result
+}
 
-  if (result.success) {
-    redirect('/dashboard')
+export async function forgotPasswordAction(formData: FormData) {
+  const email = formData.get('email') as string
+
+  if (!email) {
+    return { error: 'Email is required' }
   }
 
-  return result
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    return { error: 'Please enter a valid email address' }
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient()
+
+    // Check if user exists
+    const { data: user, error: userError } = await supabase
+      .from('mUsers')
+      .select('email')
+      .eq('email', email)
+      .eq('del_flag', 0)
+      .single()
+
+    if (userError || !user) {
+      // Don't reveal if user exists or not for security
+      return { success: true }
+    }
+
+    // Send password reset email
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
+    })
+
+    if (error) {
+      console.error('Password reset error:', error)
+      return { error: 'Failed to send reset email. Please try again.' }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Forgot password error:', error)
+    return { error: 'An unexpected error occurred. Please try again.' }
+  }
+}
+
+export async function resetPasswordAction(formData: FormData) {
+  const password = formData.get('password') as string
+  const accessToken = formData.get('access_token') as string
+  const refreshToken = formData.get('refresh_token') as string
+
+  if (!password || !accessToken || !refreshToken) {
+    return { error: 'Missing required parameters' }
+  }
+
+  if (password.length < 8) {
+    return { error: 'Password must be at least 8 characters long' }
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient()
+
+    // Set the session using the tokens
+    const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    })
+
+    if (sessionError || !sessionData.user) {
+      return { error: 'Invalid or expired reset link' }
+    }
+
+    // Update the user's password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: password,
+    })
+
+    if (updateError) {
+      console.error('Password update error:', updateError)
+      return { error: 'Failed to update password. Please try again.' }
+    }
+
+    // Hash the new password for our database
+    const hashedPassword = await bcrypt.hash(password, 12)
+
+    // Update the password in our users table
+    if (sessionData.user.email) {
+      const { error: dbError } = await supabase
+        .from('mUsers')
+        .update({ password: hashedPassword })
+        .eq('email', sessionData.user.email)
+
+      if (dbError) {
+        console.error('Database password update error:', dbError)
+        // Don't return error here as Supabase auth password is already updated
+      }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Reset password error:', error)
+    return { error: 'An unexpected error occurred. Please try again.' }
+  }
 }
