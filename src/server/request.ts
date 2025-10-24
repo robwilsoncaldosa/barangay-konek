@@ -317,64 +317,98 @@ export async function deleteRequest(requestId: string): Promise<{ success: boole
 
 export async function completeRequestWithFile({ requestId, email, file, tx_hash }: CompleteRequestParams) {
   try {
+    console.log('Starting file upload process for request:', requestId);
+    
     // Upload file using unified storage utility
     const uploadResult = await uploadFile(file)
     
     if (!uploadResult.success) {
+      console.error('File upload failed:', uploadResult.error);
       return { success: false, error: uploadResult.error || 'File upload failed' }
     }
     
+    console.log('File uploaded successfully, public URL:', uploadResult.publicUrl);
     const publicUrl = uploadResult.publicUrl!
 
-    // Send email with file attachment using the public URL
-    const transporter = nodemailer.createTransport({
+    console.log('Sending email notification to:', email);
+    
+    // Validate SMTP configuration
+    const smtpConfig = {
       host: process.env.NEXT_PUBLIC_SMTP_HOST,
       port: Number(process.env.NEXT_PUBLIC_SMTP_PORT),
+      user: process.env.NEXT_PUBLIC_SMTP_USER,
+      pass: process.env.NEXT_PUBLIC_SMTP_PASS,
+    };
+    
+    console.log('SMTP Configuration:', {
+      host: smtpConfig.host,
+      port: smtpConfig.port,
+      user: smtpConfig.user,
+      hasPassword: !!smtpConfig.pass
+    });
+    
+    if (!smtpConfig.host || !smtpConfig.port || !smtpConfig.user || !smtpConfig.pass) {
+      console.error('Missing SMTP configuration');
+      return { success: false, error: 'Email configuration is incomplete' };
+    }
+    
+    // Send email with file attachment using the public URL
+     const transporter = nodemailer.createTransport({
+      host: smtpConfig.host,
+      port: smtpConfig.port,
       auth: {
-        user: process.env.NEXT_PUBLIC_SMTP_USER,
-        pass: process.env.NEXT_PUBLIC_SMTP_PASS,
+        user: smtpConfig.user,
+        pass: smtpConfig.pass,
       },
     })
 
-    await transporter.sendMail({
-      from: process.env.NEXT_PUBLIC_SMTP_USER ?? undefined,
-      to: email,
-      subject: 'Your Requested Document',
-      html: `
-       <div style="font-family: Arial, sans-serif; background-color: #f3f6f9; padding: 24px;">
-          <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-            <div style="background-color: #2563eb; color: #ffffff; padding: 16px 24px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-              <h2 style="margin: 0; font-size: 20px;">Barangay Konek</h2>
-            </div>
-            <div style="padding: 24px; background: #ffffff;">
-              <h3 style="margin: 0 0 12px; color: #1f2937;">Your Requested Document is Ready</h3>
-              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                Dear Resident,
-              </p>
-              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                Thank you for using our service. Your requested document is now ready for download.
-              </p>
-              <div style="margin: 24px 0; padding: 16px; background-color: #f8fafc; border-radius: 6px; border-left: 4px solid #2563eb;">
-                <p style="margin: 0; color: #374151; font-size: 15px;">
-                  <strong>Download your document:</strong><br/>
-                  <a href="${publicUrl}" style="color: #2563eb; text-decoration: none; font-weight: 500;" target="_blank">Click here to download</a>
+    try {
+      await transporter.sendMail({
+        from: smtpConfig.user,
+        to: email,
+        subject: 'Your Requested Document',
+        html: `
+         <div style="font-family: Arial, sans-serif; background-color: #f3f6f9; padding: 24px;">
+            <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+              <div style="background-color: #2563eb; color: #ffffff; padding: 16px 24px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                <h2 style="margin: 0; font-size: 20px;">Barangay Konek</h2>
+              </div>
+              <div style="padding: 24px; background: #ffffff;">
+                <h3 style="margin: 0 0 12px; color: #1f2937;">Your Requested Document is Ready</h3>
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                  Dear Resident,
+                </p>
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                  Thank you for using our service. Your requested document is now ready for download.
+                </p>
+                <div style="margin: 24px 0; padding: 16px; background-color: #f8fafc; border-radius: 6px; border-left: 4px solid #2563eb;">
+                  <p style="margin: 0; color: #374151; font-size: 15px;">
+                    <strong>Download your document:</strong><br/>
+                    <a href="${publicUrl}" style="color: #2563eb; text-decoration: none; font-weight: 500;" target="_blank">Click here to download</a>
+                  </p>
+                </div>
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                  If you have any concerns or need additional assistance, feel free to reply to this email.
+                </p>
+                <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
+                  Best regards,<br/>
+                  <strong>Barangay Konek Team</strong>
                 </p>
               </div>
-              <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                If you have any concerns or need additional assistance, feel free to reply to this email.
-              </p>
-              <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
-                Best regards,<br/>
-                <strong>Barangay Konek Team</strong>
-              </p>
+            </div>
+            <div style="text-align: center; padding: 16px; font-size: 12px; color: #777;">
+              &copy; ${new Date().getFullYear()} Barangay Konek. All rights reserved.
             </div>
           </div>
-          <div style="text-align: center; padding: 16px; font-size: 12px; color: #777;">
-            &copy; ${new Date().getFullYear()} Barangay Konek. All rights reserved.
-          </div>
-        </div>
-      `,
-    })
+        `,
+      });
+      console.log('Email sent successfully');
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError);
+      return { success: false, error: `Email sending failed: ${emailError instanceof Error ? emailError.message : 'Unknown email error'}` };
+    }
+
+    console.log('Email sent successfully, updating request status');
 
     // Update request status
     const supabaseClient = await createSupabaseServerClient()
@@ -390,10 +424,11 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
       .single()
 
     if (error) {
-      console.error('Error updating request:', error)
+      console.error('Error updating request status:', error)
       return { success: false, error: error.message }
     }
 
+    console.log('Request completed successfully');
     return { success: true, data }
   } catch (err) {
     console.error('Unexpected error in completeRequestWithFile:', err)

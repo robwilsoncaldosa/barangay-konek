@@ -358,11 +358,13 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
         setUploadFile(null);
         alert("Request completed successfully!");
       } else {
-        alert(result.error || "Failed to complete request");
+        console.error("Request completion failed:", result.error);
+        alert(`Failed to complete request: ${result.error || "Unknown error"}`);
       }
     } catch (err) {
       console.error("Error completing request:", err);
-      alert("An unexpected error occurred");
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      alert(`An unexpected error occurred: ${errorMessage}`);
     }
   };
 
