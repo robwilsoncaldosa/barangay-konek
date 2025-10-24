@@ -238,6 +238,7 @@ export async function updateUser(
       .from("mUsers")
       .update(updateData)
       .eq("id", Number(userId))
+      .eq('del_flag', 0)
       .select()
       .single();
 

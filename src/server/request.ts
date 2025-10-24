@@ -28,7 +28,7 @@ export async function getRequests(filters?: {
 }): Promise<RequestWithUser[]> {
   try {
     const supabase = await createSupabaseServerClient()
-    let query = supabase.from('mRequest').select('*').order('id', { ascending: true })
+    let query = supabase.from('mRequest').select('*').eq('del_flag', 0).order('id', { ascending: true })
 
     if (filters?.resident_id) {
       query = query.eq('resident_id', Number(filters.resident_id))
@@ -53,6 +53,7 @@ export async function getRequests(filters?: {
       .from('mUsers')
       .select('id, email')
       .in('id', residentIds)
+      .eq('del_flag', 0)
 
     if (userError) {
       console.error('Error fetching users:', userError)
@@ -82,6 +83,7 @@ export async function getRequestById(requestId: string): Promise<Request | null>
       .from('mRequest')
       .select('*')
       .eq('id', Number(requestId))
+      .eq('del_flag', 0)
       .single()
 
     if (error) {

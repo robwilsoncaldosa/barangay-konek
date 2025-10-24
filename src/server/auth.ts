@@ -239,6 +239,7 @@ export async function resetPasswordAction(formData: FormData) {
         .from('mUsers')
         .update({ password: hashedPassword })
         .eq('email', sessionData.user.email)
+        .eq('del_flag', 0)
 
       if (dbError) {
         console.error('Database password update error:', dbError)
