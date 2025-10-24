@@ -7,21 +7,59 @@ type Certificate = Database['public']['Tables']['mCertificate']['Row']
 type CertificateInsert = Database['public']['Tables']['mCertificate']['Insert']
 type CertificateUpdate = Database['public']['Tables']['mCertificate']['Update']
 
-export async function getCertificates(): Promise<Certificate[]> {
+export async function getCertificates(filters?: {
+  resident_id?: string
+}): Promise<Certificate[]> {
   try {
     const supabase = await createSupabaseServerClient()
-    const { data, error } = await supabase
-      .from('mCertificate')
-      .select('*')
-      .eq('del_flag', 0)
-      .order('id', { ascending: true })
+    
+    if (filters?.resident_id) {
+      // For residents, get certificates they have requested
+      const { data: requests, error: requestError } = await supabase
+        .from('mRequest')
+        .select('mCertificateId')
+        .eq('resident_id', Number(filters.resident_id))
+        .eq('del_flag', 0)
 
-    if (error) {
-      console.error('Error fetching certificates:', error)
-      return []
+      if (requestError) {
+        console.error('Error fetching user requests:', requestError)
+        return []
+      }
+
+      const certificateIds = [...new Set(requests?.map(req => req.mCertificateId).filter(id => id !== null) || [])]
+      
+      if (certificateIds.length === 0) {
+        return []
+      }
+
+      const { data, error } = await supabase
+        .from('mCertificate')
+        .select('*')
+        .in('id', certificateIds)
+        .eq('del_flag', 0)
+        .order('id', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching certificates:', error)
+        return []
+      }
+
+      return data || []
+    } else {
+      // For officials/admins, get all certificates
+      const { data, error } = await supabase
+        .from('mCertificate')
+        .select('*')
+        .eq('del_flag', 0)
+        .order('id', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching certificates:', error)
+        return []
+      }
+
+      return data || []
     }
-
-    return data || []
   } catch (error) {
     console.error('Unexpected error:', error)
     return []

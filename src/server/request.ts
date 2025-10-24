@@ -45,12 +45,12 @@ export async function getRequests(filters?: {
 
     // Type definition for the joined data structure
     type JoinedRequest = Request & {
-        mCertificate: Pick<Certificate, 'name' | 'fee'> | null
+      mCertificate: Pick<Certificate, 'name' | 'fee'> | null
     }
 
     const { data: joinedRequests, error } = await query as {
-        data: JoinedRequest[] | null;
-        error: any;
+      data: JoinedRequest[] | null;
+      error: unknown | null;
     }
 
     if (error) {
@@ -89,7 +89,7 @@ export async function getRequests(filters?: {
 
         residentName = parts.join(' ')
       }
-      
+
       // Extract certificate details, providing defaults if mCertificate is null
       const certificateDetails = request.mCertificate || { name: 'Unknown Certificate', fee: 0 }
 
