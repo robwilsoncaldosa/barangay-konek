@@ -1,36 +1,77 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { supabaseServer } from '@/lib/config/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { barangayKonekDictionary } from '@/lib/chatbot/dictionary';
-import { NextRequest } from 'next/server';
 
+// 🧠 Gemini setup
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
+// 🧾 Type definitions
+interface ChatRequestBody {
+  userId?: string | null;
+  guestId?: string | null;
+  message: string;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  message: string;
+}
+
+interface ParsedMetadata {
+  intent?: string;
+  action?: string;
+  suggestions?: string[];
+}
+
+interface DocumentRecord {
+  id: string;
+  document_type: string;
+  status: string;
+  tx_hash?: string | null;
+  created_at: string;
+}
+
+//  POST handler
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body: ChatRequestBody = await req.json();
     const { userId = null, guestId = null, message } = body;
+
     if (!message)
       return NextResponse.json({ error: 'Message required' }, { status: 400 });
 
+    //  Get authenticated user from Supabase
+    const {
+      data: { user: authUser },
+    } = await supabaseServer.auth.getUser();
+
+    // Determine effective user ID (authenticated > provided > guest)
+    const effectiveUserId: string | null = authUser?.id ?? userId ?? null;
+
+    //  Clear guest messages if user is now authenticated
+    if (authUser?.id && guestId) {
+      await supabaseServer.from('chatbot_messages').delete().eq('guest_id', guestId);
+    }
+
     // Save user message
     await supabaseServer.from('chatbot_messages').insert({
-      user_id: userId,
+      user_id: effectiveUserId,
       guest_id: guestId,
       role: 'user',
       message,
     });
 
-    // Intent detection
+    //  Intent detection
     const text = message.toLowerCase();
-    let intent = 'general';
+    let intent: 'general' | 'check_status' | 'request_doc' | 'verify_doc' = 'general';
     if (/\b(status|where|track|check)\b/.test(text)) intent = 'check_status';
     else if (/\b(request|apply|requesting|need)\b/.test(text)) intent = 'request_doc';
     else if (/\b(verify|verification|blockchain|tx)\b/.test(text)) intent = 'verify_doc';
 
-    // Language detection (simple heuristic)
-    let language = 'english';
+    //  Language detection
+    let language: 'english' | 'bisaya' | 'tagalog' = 'english';
     if (/\b(unsa|asa|kinsa|ganahan|kay|mao|ra|gyud|lagi)\b/i.test(text)) {
       language = 'bisaya';
     } else if (/\b(ano|paano|saan|kailan|naman|po|ako|ikaw|gusto|salamat)\b/i.test(text)) {
@@ -43,17 +84,17 @@ export async function POST(req: NextRequest) {
       const { data: docs } = await supabaseServer
         .from('mRequest')
         .select('id, document_type, status, tx_hash, created_at')
-        .eq('resident_id', userId || 0)
+        .eq('resident_id', effectiveUserId || 0)
         .order('created_at', { ascending: false })
         .limit(5);
 
       if (docs?.length) {
         docContext = docs
           .map(
-            (d) =>
+            (d: DocumentRecord) =>
               `- ${d.document_type}: status=${d.status || 'pending'}${
                 d.tx_hash ? ` verification=${d.tx_hash}` : ''
-              }`
+              }`,
           )
           .join('\n');
       }
@@ -69,7 +110,7 @@ export async function POST(req: NextRequest) {
 
     const conversation = (chatHistory || [])
       .reverse()
-      .map((m) => `${m.role?.toUpperCase()}: ${m.message}`)
+      .map((m) => `${m.role.toUpperCase()}: ${m.message}`)
       .join('\n');
 
     // Check if this is the first chat
@@ -110,28 +151,33 @@ ${conversation}
 
 USER: ${message}`;
 
-    // Call Gemini
+    // Call Gemini API
     const model = genAI.getGenerativeModel({ model: MODEL });
 
+    // Timeout guard
     const timeout = (ms: number) =>
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), ms));
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Request timeout')), ms));
 
-    const result = await Promise.race([model.generateContent(prompt), timeout(15000)]);
-    const replyText = (result as { response: { text: () => string } }).response.text();
+    const result = (await Promise.race([
+      model.generateContent(prompt),
+      timeout(15000),
+    ])) as { response: { text: () => string } };
 
-    // Remove trailing JSON metadata from reply
+    const replyText = result.response.text();
+
+    // 🧹 Clean up AI output (remove trailing JSON)
     const cleanedReply = replyText.replace(/\{[\s\S]*\}$/, '').trim();
 
-    // Save assistant reply (cleaned)
+    // Save assistant response
     await supabaseServer.from('chatbot_messages').insert({
-      user_id: userId,
+      user_id: effectiveUserId,
       guest_id: guestId,
       role: 'assistant',
       message: cleanedReply,
     });
 
-    // Parse JSON separately for frontend suggestions
-    let parsed = null;
+    //  Parse metadata JSON (intent, suggestions)
+    let parsed: ParsedMetadata | null = null;
     try {
       const jsonMatch = replyText.match(/\{[\s\S]*\}$/);
       if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
@@ -139,6 +185,7 @@ USER: ${message}`;
       parsed = null;
     }
 
+    // Final response
     return NextResponse.json({
       reply: cleanedReply,
       parsed,
@@ -146,7 +193,7 @@ USER: ${message}`;
       language,
       greeted: isFirstMessage,
     });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('Chat route error', err);
     const errorMessage = err instanceof Error ? err.message : 'Server error';
     return NextResponse.json({ error: errorMessage }, { status: 500 });

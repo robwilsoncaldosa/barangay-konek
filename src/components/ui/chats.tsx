@@ -132,7 +132,7 @@ export default function ChatWidget({ userId = null, className }: ChatWidgetProps
       } else {
         // Show animated greeting for new users
         setMessages([{ role: "assistant", message: TYPING_MESSAGE, id: "typing-initial" }]);
-        
+
         setTimeout(() => {
           setMessages([
             {
@@ -209,23 +209,23 @@ export default function ChatWidget({ userId = null, className }: ChatWidgetProps
         });
 
         // Add suggestions if available
-         if (data.parsed?.suggestions && data.parsed.suggestions.length > 0) {
-           setTimeout(() => {
-             setMessages(prev => [
-               ...prev,
-               {
-                 role: "assistant",
-                 message: `__SUGGESTIONS__${JSON.stringify(data.parsed!.suggestions)}`,
-                 id: `suggestions-${Date.now()}`,
-               },
-             ]);
-           }, 200);
-         }
+        if (data.parsed?.suggestions && data.parsed.suggestions.length > 0) {
+          setTimeout(() => {
+            setMessages(prev => [
+              ...prev,
+              {
+                role: "assistant",
+                message: `__SUGGESTIONS__${JSON.stringify(data.parsed!.suggestions)}`,
+                id: `suggestions-${Date.now()}`,
+              },
+            ]);
+          }, 200);
+        }
       }, 1500);
     } catch (err) {
       console.error("Error sending message:", err);
       setError("Failed to send message. Please try again.");
-      
+
       // Remove typing indicator and show error
       setMessages(prev => {
         const withoutTyping = prev.filter(msg => msg.message !== TYPING_MESSAGE);
@@ -392,7 +392,7 @@ export default function ChatWidget({ userId = null, className }: ChatWidgetProps
                 <Globe className="w-3 h-3 inline mr-1" />
                 Translate
               </button>
-              
+
               <AnimatePresence>
                 {showLangMenu === index && (
                   <motion.div
