@@ -315,17 +315,11 @@ export async function deleteRequest(requestId: string): Promise<{ success: boole
 
 export async function completeRequestWithFile({ requestId, email, file, tx_hash }: CompleteRequestParams) {
   try {
-    // Save the file
-    const uploadDir = path.join(process.cwd(), 'uploads')
-    fs.mkdirSync(uploadDir, { recursive: true })
-    const filePath = path.join(uploadDir, `${Date.now()}-${file.name}`)
+    // Read file as arrayBuffer (in-memory only)
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    // Read file as arrayBuffer and write to disk
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    fs.writeFileSync(filePath, buffer)
-
-    // Send email
+    // Send email (no need to save to disk)
     const transporter = nodemailer.createTransport({
       host: process.env.NEXT_PUBLIC_SMTP_HOST,
       port: Number(process.env.NEXT_PUBLIC_SMTP_PORT),
@@ -333,10 +327,10 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
         user: process.env.NEXT_PUBLIC_SMTP_USER,
         pass: process.env.NEXT_PUBLIC_SMTP_PASS,
       },
-    })
+    });
 
     await transporter.sendMail({
-      from: process.env.NEXT_PUBLIC_SMTP_USER ?? undefined,
+      from: `Barangay Konek <${process.env.NEXT_PUBLIC_SMTP_USER}>`,
       to: email,
       subject: 'Your Requested Document',
       html: `
@@ -354,11 +348,11 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
                 Thank you for using our service. Please find the attached document you requested.
               </p>
               ${tx_hash
-          ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
-                      Blockchain transaction: <a href="https://sepolia-blockscout.lisk.com/tx/${tx_hash}">${tx_hash}</a>
-                     </p>`
-          : ""
-        }
+                ? `<p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                    Blockchain transaction: <a href="https://sepolia-blockscout.lisk.com/tx/${tx_hash}">${tx_hash}</a>
+                   </p>`
+                : ""
+              }
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
                 If you have any concerns or need additional assistance, feel free to reply to this email.
               </p>
@@ -373,11 +367,17 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
           </div>
         </div>
       `,
-      attachments: [{ filename: file.name, path: filePath }],
-    })
+      attachments: [
+        {
+          filename: file.name,
+          content: buffer,
+          contentType: file.type,
+        },
+      ],
+    });
 
     // Update request status
-    const supabase = await createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
       .from('mRequest')
       .update({
@@ -387,17 +387,17 @@ export async function completeRequestWithFile({ requestId, email, file, tx_hash 
       })
       .eq('id', Number(requestId))
       .select()
-      .single()
+      .single();
 
     if (error) {
-      console.error('Error updating request:', error)
-      return { success: false, error: error.message }
+      console.error('Error updating request:', error);
+      return { success: false, error: error.message };
     }
 
-    return { success: true, data }
+    return { success: true, data };
   } catch (err) {
-    console.error('Unexpected error in completeRequestWithFile:', err)
-    const message = err instanceof Error ? err.message : 'Unexpected error occurred'
-    return { success: false, error: message }
+    console.error('Unexpected error in completeRequestWithFile:', err);
+    const message = err instanceof Error ? err.message : 'Unexpected error occurred';
+    return { success: false, error: message };
   }
 }
