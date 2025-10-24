@@ -11,7 +11,7 @@ export default async function HomePage() {
       <Header />
       <HeroSection />
       <AboutSection />
-       <Chatbot />
+      <Chatbot />
       <FeaturesSection />
       <Footer />
     </div>

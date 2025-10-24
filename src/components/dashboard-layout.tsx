@@ -7,7 +7,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import type { Database } from "../../database.types"
-
+import Chatbot from "@/components/ui/chats";
 type User = Database['public']['Tables']['mUsers']['Row']
 
 interface DashboardLayoutProps {
@@ -36,6 +36,7 @@ export function DashboardLayout({ children, title, user }: DashboardLayoutProps)
             </div>
           </div>
         </div>
+        <Chatbot />
       </SidebarInset>
     </SidebarProvider>
   )
