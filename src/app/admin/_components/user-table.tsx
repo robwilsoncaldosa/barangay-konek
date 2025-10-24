@@ -143,11 +143,7 @@ const UserTable = ({ userType }: Props) => {
       enableSorting: false,
       enableHiding: false,
     },
-    {
-      accessorKey: "id",
-      header: "ID",
-      cell: ({ row }) => <div className="font-medium">{row.getValue("id")}</div>,
-    },
+
     {
       accessorKey: "first_name",
       header: ({ column }) => (

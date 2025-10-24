@@ -16,7 +16,6 @@ export default function RequestsTable({ requests }: RequestsTableProps) {
       <table className="w-full border-collapse border">
         <thead>
           <tr className="bg-gray-100">
-            <th className="border p-2 text-left">Certificate ID</th>
             <th className="border p-2 text-left">Document Type</th>
             <th className="border p-2 text-left">Purpose</th>
             <th className="border p-2 text-left">Request Date</th>
@@ -28,7 +27,6 @@ export default function RequestsTable({ requests }: RequestsTableProps) {
         <tbody>
           {requests.map((request) => (
             <tr key={request.id} className="hover:bg-gray-50">
-              <td className="border p-2">{request.mCertificateId}</td>
               <td className="border p-2">{request.document_type}</td>
               <td className="border p-2">{request.purpose}</td>
               <td className="border p-2">{request.request_date}</td>

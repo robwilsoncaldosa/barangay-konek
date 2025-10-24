@@ -74,7 +74,6 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<RequestWithUser | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [txHash, setTxHash] = useState("");
 
   const canManage = userRole === "admin" || userRole === "official";
 
@@ -138,11 +137,7 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
       enableSorting: false,
       enableHiding: false,
     }] : []),
-    {
-      accessorKey: "id",
-      header: "ID",
-      cell: ({ row }) => <div className="font-medium">{row.getValue("id")}</div>,
-    },
+
     ...(userRole !== "resident" ? [{
       accessorKey: "resident_email",
       header: ({ column }: { column: Column<RequestWithUser> }) => (
@@ -354,7 +349,6 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
         requestId: String(selectedRequest.id),
         email: selectedRequest.resident_email,
         file: uploadFile,
-        tx_hash: txHash,
       });
 
       if (result.success) {
@@ -362,7 +356,6 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
         setIsUploadDialogOpen(false);
         setSelectedRequest(null);
         setUploadFile(null);
-        setTxHash("");
         alert("Request completed successfully!");
       } else {
         alert(result.error || "Failed to complete request");
@@ -541,31 +534,19 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="file" className="text-right">
-                  Document
-                </Label>
-                <Input
-                  id="file"
-                  type="file"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                  className="col-span-3"
-                  required
-                />
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="file" className="text-right">
+                    Document
+                  </Label>
+                  <Input
+                    id="file"
+                    type="file"
+                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="txHash" className="text-right">
-                  TX Hash
-                </Label>
-                <Input
-                  id="txHash"
-                  value={txHash}
-                  onChange={(e) => setTxHash(e.target.value)}
-                  placeholder="Optional blockchain transaction hash"
-                  className="col-span-3"
-                />
-              </div>
-            </div>
             <DialogFooter>
               <Button
                 type="button"
@@ -574,7 +555,6 @@ const RequestTable = ({ userRole = "resident", showActions = true, userId }: Req
                   setIsUploadDialogOpen(false);
                   setSelectedRequest(null);
                   setUploadFile(null);
-                  setTxHash("");
                 }}
               >
                 Cancel

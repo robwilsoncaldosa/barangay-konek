@@ -9,13 +9,10 @@ import {
   ClipboardList,
   FileText,
   UserCheck,
-  Settings,
-  Building,
   User,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -79,28 +76,9 @@ const getNavigationItems = (userType: string) => {
   }
 }
 
-const getSecondaryNavItems = (userType: string) => {
-  const commonItems = [
-    {
-      title: "Settings",
-      url: userType === "super_admin" ? "/admin/settings" :
-        userType === "official" ? "/official/settings" : "/resident/settings",
-      icon: Settings,
-    },
-  ]
-
-  if (userType === "super_admin") {
-    return [
-      ...commonItems
-    ]
-  }
-
-  return commonItems
-}
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const navigationItems = user ? getNavigationItems(user.user_type) : []
-  const secondaryItems = user ? getSecondaryNavItems(user.user_type) : []
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -133,7 +111,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navigationItems} />
-        <NavSecondary items={secondaryItems} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         {user && <NavUser user={user} />}

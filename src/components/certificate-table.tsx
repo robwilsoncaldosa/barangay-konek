@@ -100,11 +100,7 @@ const CertificateTable = ({ userRole = "resident", showActions = true, userId }:
       enableSorting: false,
       enableHiding: false,
     }] : []),
-    {
-      accessorKey: "id",
-      header: "ID",
-      cell: ({ row }) => <div className="font-medium">{row.getValue("id")}</div>,
-    },
+
     {
       accessorKey: "name",
       header: ({ column }) => (

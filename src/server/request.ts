@@ -14,6 +14,7 @@ type Certificate = Database['public']['Tables']['mCertificate']['Row'] // Added 
 
 interface RequestWithUserAndCertificate extends Request {
   resident_name: string
+  resident_email: string
   certificate_name: string
   certificate_fee: number
 }
@@ -22,7 +23,7 @@ interface CompleteRequestParams {
   requestId: string
   email: string
   file: File
-  tx_hash: string
+  tx_hash?: string
 }
 
 // NOTE: I'm updating the 'mUsers' select to include name fields and using a JOIN for mCertificate.
@@ -65,7 +66,7 @@ export async function getRequests(filters?: {
 
     const { data: users, error: userError } = await supabase
       .from('mUsers')
-      .select('id, first_name, middle_name, last_name')
+      .select('id, email, first_name, middle_name, last_name')
       .in('id', residentIds)
       .eq('del_flag', 0)
 
@@ -93,12 +94,15 @@ export async function getRequests(filters?: {
       // Extract certificate details, providing defaults if mCertificate is null
       const certificateDetails = request.mCertificate || { name: 'Unknown Certificate', fee: 0 }
 
+      const residentEmail = user?.email ?? ''
+
       return {
         ...request,
-        resident_name: residentName,        // Corrected property name
+        resident_name: residentName,
+        resident_email: residentEmail,
         certificate_name: certificateDetails.name,
         certificate_fee: certificateDetails.fee,
-      } as RequestWithUserAndCertificate // Cast to the final type
+      } as RequestWithUserAndCertificate
     })
 
     return requestsWithUserAndCertificate
