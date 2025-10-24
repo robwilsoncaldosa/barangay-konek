@@ -17,6 +17,9 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, title, user }: DashboardLayoutProps) {
+  const isResident =
+    (user as any)?.userType === "resident" || (user as any)?.user_type === "resident";
+
   return (
     <SidebarProvider
       style={
@@ -36,7 +39,7 @@ export function DashboardLayout({ children, title, user }: DashboardLayoutProps)
             </div>
           </div>
         </div>
-        <Chatbot />
+        {isResident && <Chatbot />}
       </SidebarInset>
     </SidebarProvider>
   )

@@ -85,7 +85,7 @@ export default function ChatWidget({ userId = null }) {
       });
 
       const d = await res.json();
-      const assistant = d.reply || "Sorry, failed to get response.";
+      const assistant = d.reply || "Sorry, can you say that again?";
 
       // ⏳ Delay to simulate typing before showing real message
       setTimeout(() => {
@@ -113,7 +113,7 @@ export default function ChatWidget({ userId = null }) {
       console.error(e);
       setMessages((m) => [
         ...m.filter((msg) => msg.message !== "💬 Assistant is typing..."),
-        { role: "assistant", message: "Server error." },
+        { role: "assistant", message: "Sorry, can you say that again?" },
       ]);
     } finally {
       setLoading(false);
